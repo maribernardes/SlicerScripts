@@ -6,7 +6,13 @@ from __main__ import qt
 filePath = "/home/mariana/SlicerScripts/ExtractSequences/AlternatePlayback.py"
 script_globals = {'browserNameA': 'COR', 'browserNameB': 'SAG', 'delayms': 500}
 exec(open(filePath, encoding='utf-8').read(), script_globals)
+
+# To stop the execution
+script_globals['stop_alternate_playback']()
 """
+
+# Global timer handle to allow external stop
+alternatePlaybackTimer = None
 
 def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float = 1000):
     """
@@ -15,6 +21,7 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
     :param browser_name_B: Name of the Sequence Browser for sequence B.
     :param delay_ms: Delay in milliseconds between frames.
     """
+    global alternatePlaybackTimer
 
     # Load sequence browser node names
     browserA = slicer.util.getNode(browser_name_A)
@@ -22,8 +29,8 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
 
     # Internal playback state
     currentBrowser = 'A'
-    timer = qt.QTimer()
-    timer.setInterval(delay_ms)
+    alternatePlaybackTimer = qt.QTimer()
+    alternatePlaybackTimer.setInterval(delay_ms)
 
     def getCurrentIndex(browser):
         return browser.GetSelectedItemNumber()
@@ -36,11 +43,11 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
         maxIndex = getMaxIndex(browser)
         if index < maxIndex:
             browser.SetSelectedItemNumber(index + 1)
-            return True  # advanced
-        return False  # already at the end
+            return True
+        return False
 
     def stepPlayback():
-        nonlocal currentBrowser  # <-- Fix: use nonlocal instead of global
+        nonlocal currentBrowser
 
         if currentBrowser == 'A':
             advanceBrowser(browserA)
@@ -49,25 +56,31 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
             advanceBrowser(browserB)
             currentBrowser = 'A'
 
-        # Stop the timer if both have reached their ends
         if getCurrentIndex(browserA) >= getMaxIndex(browserA) and \
            getCurrentIndex(browserB) >= getMaxIndex(browserB):
             print("Playback finished.")
-            timer.stop()
-
-    # Connect timer to the playback function
-    timer.timeout.connect(stepPlayback)
+            alternatePlaybackTimer.stop()
 
     # Reset both to first frame
     browserA.SetSelectedItemNumber(0)
     browserB.SetSelectedItemNumber(0)
     currentBrowser = 'A'
 
-    # Start alternating playback
-    timer.start()
+    # Connect and start the timer
+    alternatePlaybackTimer.timeout.connect(stepPlayback)
+    alternatePlaybackTimer.start()
     print("Alternating playback started.")
 
-# Check if the required variables are defined
+def stop_alternate_playback():
+    """Stop the alternating playback if it's running."""
+    global alternatePlaybackTimer
+    if alternatePlaybackTimer and alternatePlaybackTimer.isActive():
+        alternatePlaybackTimer.stop()
+        print("Alternate playback stopped.")
+    else:
+        print("No active timer to stop.")
+
+# Check for external variables and call playback if available
 try:
     browserNameA
 except NameError:
@@ -81,7 +94,6 @@ try:
 except NameError:
     delayms = None
 
-# Run if all inputs are available
 if None in (browserNameA, browserNameB, delayms):  
     print("Error: Missing 'browserNameA',  'browserNameB' or 'delayms'. Please define it before executing the script.")
 else:
