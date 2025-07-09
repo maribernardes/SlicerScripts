@@ -5,7 +5,7 @@
 filePath = "/home/mariana/SlicerScripts/ExtractSequences/SplitSequences.py"
 
 # Define the variable to pass
-script_globals = {'sequenceName': '15: MR BEAT_NEEDLE BIPLANE', 'blockSize': 3, 'CORFirst': True}
+script_globals = {'sequenceName': '13: MR 2D BIPLANE GRE TE4', 'blockSize': 3, 'CORFirst': False}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)

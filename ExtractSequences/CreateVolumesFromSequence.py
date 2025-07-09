@@ -9,8 +9,9 @@ import numpy as np
 filePath = "/home/mariana/SlicerScripts/ExtractSequences/CreateVolumesFromSequence.py"
 
 # Define the variable to pass
-script_globals = {'sequenceName': '15: MR BEAT_NEEDLE COR', 'invertStack': True}
-script_globals = {'sequenceName': '16: MR BEAT_NEEDLE SAG', 'invertStack': False}
+# invertStack = True for SAG / False for COR
+script_globals = {'sequenceName': '13: MR 2D BIPLANE GRE TE4_COR', 'invertStack': False}
+script_globals = {'sequenceName': '13: MR 2D BIPLANE GRE TE4_SAG', 'invertStack': True}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)
@@ -43,7 +44,7 @@ def create_volumes_from_sequence(sequence_node_name: str, invert_stack: bool = F
 
     for i in range(num_volumes):
         slice_arrays = []  # Store numpy arrays
-        reference_frame = None  # Store the middle slice (2nd slice) for spatial metadata
+        reference_frame = None  # Store reference for spatial metadata
 
         # Extract slice_number frames from the sequence
         for j in range(slice_number):
@@ -104,7 +105,7 @@ def create_volumes_from_sequence(sequence_node_name: str, invert_stack: bool = F
 
         # Add new 3D volume to the sequence node
         new_sequence_node.SetDataNodeAtValue(new_volume, str(i))  # Use index as sequence frame value
-        print(f"Frame {i + 1} with shape {stacked_array.shape} and spacing {new_volume.GetSpacing()}")
+        print(f"Frame {i + 1} with shape {stacked_array.shape}, origin {new_volume.GetOrigin()} and spacing {new_volume.GetSpacing()}")
 
         # Remove the temporary 3D volume from the scene after adding it to the sequence
         slicer.mrmlScene.RemoveNode(new_volume)
