@@ -2,10 +2,10 @@
 
 """
 # Define the script path
-filePath = "/Users/pl771/Devel/AI_Tracking_Experiment/GetPuncturePoint.py"
+filePath = "/home/mariana/SlicerScripts/FiducialsRegistration/GetPuncturePoint.py"
 
 # Define the variable to pass
-script_globals = {'worldPoints': 'W', 'outputName': 'P4', 'p1': (2784,849), 'p2': (2165,3318), 'p3': (889,1109), 'p4': (2194,2283)}
+script_globals = {'worldPoints': 'WaxPaperPoints', 'outputName': 'P6w', 'p1': (3140,2106), 'p2': (3687,4601), 'p3': (1522,3227), 'p4': (2748,3343)}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)
@@ -27,10 +27,9 @@ def create_or_update_markup(outputName, P4):
             break
 
     if not markupNode:
-        # Create a new markup node with a unique name
-        uniqueName = slicer.mrmlScene.GenerateUniqueName(outputName)
-        markupNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLMarkupsFiducialNode', uniqueName)
-        print(f"Created new markup node with unique name '{uniqueName}'.")
+        # Create a new markup node with outputName
+        markupNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLMarkupsFiducialNode', outputName)
+        print(f"Created new markup node with name '{outputName}'.")
     else:
         # Use the existing markup node
         pass
@@ -98,7 +97,6 @@ def calculate_4th_point_3d(P1, P2, P3, p1, p2, p3, p4):
     
     return P4
 
-
 def main(worldPoints, outputName, p1, p2, p3, p4):
     # Your existing code that uses 'worldPoints'and 'pixelPoints'
     print(f"The worldPoints is: {worldPoints}")
@@ -129,7 +127,7 @@ def main(worldPoints, outputName, p1, p2, p3, p4):
 
             print(f"Puncture Point:")
             print(P4)
-            create_or_update_markup('P4', P4)
+            create_or_update_markup(outputName, P4)
 
 
 # Check if 'worldPoints', óutputName, 'p1', 'p2', 'p3' and 'p4' are defined in the global namespace
