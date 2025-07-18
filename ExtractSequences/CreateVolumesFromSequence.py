@@ -10,8 +10,8 @@ filePath = "/home/mariana/SlicerScripts/ExtractSequences/CreateVolumesFromSequen
 
 # Define the variable to pass
 # invertStack = True for SAG / False for COR
-script_globals = {'sequenceName': '13: MR 2D BIPLANE GRE TE4_COR', 'invertStack': False}
-script_globals = {'sequenceName': '13: MR 2D BIPLANE GRE TE4_SAG', 'invertStack': True}
+script_globals = {'sequenceName': '27: 2D BIPLANE_COR', 'invertStack': False}
+script_globals = {'sequenceName': '27: 2D BIPLANE_SAG', 'invertStack': True}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)
