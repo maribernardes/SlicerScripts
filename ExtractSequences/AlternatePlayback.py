@@ -4,7 +4,7 @@ from __main__ import qt
 """
 # Example execution snippet:
 filePath = "/home/mariana/SlicerScripts/ExtractSequences/AlternatePlayback.py"
-script_globals = {'browserNameA': 'COR', 'browserNameB': 'SAG', 'delayms': 500}
+script_globals = {'browserNameA': 'COR', 'browserNameB': 'SAG', 'delayms': 500, 'loop': False}
 exec(open(filePath, encoding='utf-8').read(), script_globals)
 
 # To stop the execution
@@ -14,7 +14,7 @@ script_globals['stop_alternate_playback']()
 # Global timer handle to allow external stop
 alternatePlaybackTimer = None
 
-def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float = 1000):
+def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float = 1000, loop: bool = False):
     """
     Alternates frame-by-frame playback between two sequence browsers.
     :param browser_name_A: Name of the Sequence Browser for sequence A.
@@ -26,6 +26,7 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
     # Load sequence browser node names
     browserA = slicer.util.getNode(browser_name_A)
     browserB = slicer.util.getNode(browser_name_B)
+
 
     # Internal playback state
     currentBrowser = 'A'
@@ -58,8 +59,13 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
 
         if getCurrentIndex(browserA) >= getMaxIndex(browserA) and \
            getCurrentIndex(browserB) >= getMaxIndex(browserB):
-            print("Playback finished.")
-            alternatePlaybackTimer.stop()
+            if loop is True:
+                print("Restart...")
+                browserA.SetSelectedItemNumber(0)
+                browserB.SetSelectedItemNumber(0)
+            else:
+                print("Playback finished.")
+                alternatePlaybackTimer.stop()
 
     # Reset both to first frame
     browserA.SetSelectedItemNumber(0)
@@ -93,8 +99,12 @@ try:
     delayms
 except NameError:
     delayms = None
+try:
+    loop
+except NameError:
+    loop = None
 
-if None in (browserNameA, browserNameB, delayms):  
-    print("Error: Missing 'browserNameA',  'browserNameB' or 'delayms'. Please define it before executing the script.")
+if None in (browserNameA, browserNameB, delayms, loop):  
+    print("Error: Missing 'browserNameA',  'browserNameB', 'delayms' or 'loop'. Please define it before executing the script.")
 else:
-    alternate_playback(browser_name_A=browserNameA, browser_name_B=browserNameB, delay_ms=delayms)
+    alternate_playback(browser_name_A=browserNameA, browser_name_B=browserNameB, delay_ms=delayms, loop=loop)
