@@ -2,7 +2,7 @@
 
 """
 # Define the script path
-filePath = "/Users/pl771/SlicerScripts/OBGYNBrachyCatheters/CreateCatheter3DModels.py"
+filePath = "/home/mariana/SlicerScripts/OBGYNBrachyCatheters/CreateCatheter3DModels.py"
 
 # Define the variable to pass
 script_globals = {'N': 28, 'prefix': 'C', 'radius_mm': 0.6}

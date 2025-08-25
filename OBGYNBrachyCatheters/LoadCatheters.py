@@ -2,10 +2,10 @@
 
 """
 # Define the script path
-filePath = "/Users/pl771/SlicerScripts/OBGYNBrachyCatheters/LoadCatheters.py"
+filePath = "/home/mariana/SlicerScripts/OBGYNBrachyCatheters/LoadCatheters.py"
 
 # Define the variable to pass
-script_globals = {'N': 28, 'folder': '/Users/pl771/Documents/Projects/OBGYN_Brachytherapy/catheter_csv', 'inputName': 'C'}
+script_globals = {'N': 28, 'folder': '/home/mariana/SlicerScenes/2024-11-11_GynBrachyteraphy/catheter_csv', 'inputName': 'C'}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)
