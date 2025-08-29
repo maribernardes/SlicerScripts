@@ -5,16 +5,48 @@
 scriptPath = "/home/mariana/SlicerScripts/ExtractSequences/CreateSequenceFromNrrd.py"
 
 # --- parameters (edit these) ---
-folder       = "/home/mariana/Experiments/2025-08-21_Pig2/out-nrrd-4"
-study_id     = "045b871a-06d9-4a"
-series_start = 33001
-series_end   = 33081
+folder       = "/home/mariana/Experiments/2025-08-21_Pig2/NRRD"
+study_id     = "09450140-98d9-4d"
+series_start = 68001
+series_end   = 68027
 plane        = "COR"   # 'AX'|'COR'|'SAG'
 modality     = "M"     # 'M'|'P' or None
 
 
 # Define the variable to pass
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/out-nrrd-4", 'study_id':'045b871a-06d9-4a', 'series_start':33001, 'series_end':33081, 'plane':'COR', 'modality': 'M'}
+-------------------------
+PLAN_1
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':33001, 'series_end':33044, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':34001, 'series_end':34044, 'plane':'COR', 'modality': 'P'}
+
+REPLAN_1
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':45001, 'series_end':45061, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':46001, 'series_end':46061, 'plane':'COR', 'modality': 'P'}
+-----------------------------------
+PLAN_2
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':57001, 'series_end':57034, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':58001, 'series_end':58034, 'plane':'COR', 'modality': 'P'}
+
+REPLAN_2
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':60001, 'series_end':60051, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':61001, 'series_end':61051, 'plane':'COR', 'modality': 'P'}
+-----------------------------------
+PLAN_3
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':68001, 'series_end':68027, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':69001, 'series_end':69027, 'plane':'COR', 'modality': 'P'}
+
+REPLAN_3
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':71001, 'series_end':71038, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':72001, 'series_end':72038, 'plane':'COR', 'modality': 'P'}
+-----------------------------------
+PLAN_4
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':77001, 'series_end':77033, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':78001, 'series_end':78033, 'plane':'COR', 'modality': 'P'}
+
+REPLAN_4
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':82001, 'series_end':82026, 'plane':'COR', 'modality': 'M'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':83001, 'series_end':83026, 'plane':'COR', 'modality': 'P'}
+-----------------------------------
 
 
 # Execute the script with the provided globals
@@ -123,7 +155,7 @@ except NameError:
 
 files = findFiles(folder, study_id, series_start, series_end, plane.upper(), (modality.upper() if modality else None))
 if not files:
-    print("No matches"); raise SystemExit
+    raise RuntimeError("No matches")
 
 print(f"[INFO] Will load {len(files)} frame(s). Building sequence…")
 
@@ -174,7 +206,7 @@ print(f"[OK] Sequence built with {seqNode.GetNumberOfDataNodes()} items (origina
 
 # Optional save (you can comment this out while debugging)
 out_name = f"{series_start}-{series_end} {modality} {plane}.mrb"
-mrb_path = os.path.join(folder, out_name)
+mrb_path = os.path.join(folder, 'Sequences', out_name)
 try:
     slicer.util.saveScene(mrb_path)
     print("[OK] Saved scene:", mrb_path)
