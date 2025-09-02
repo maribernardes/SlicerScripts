@@ -7,45 +7,36 @@ scriptPath = "/home/mariana/SlicerScripts/ExtractSequences/CreateSequenceFromNrr
 # --- parameters (edit these) ---
 folder       = "/home/mariana/Experiments/2025-08-21_Pig2/NRRD"
 study_id     = "09450140-98d9-4d"
-series_start = 68001
-series_end   = 68027
+m_start = 68001
+m_end   = 68027
 plane        = "COR"   # 'AX'|'COR'|'SAG'
-modality     = "M"     # 'M'|'P' or None
 
 
 # Define the variable to pass
 -------------------------
 PLAN_1
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':33001, 'series_end':33044, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':34001, 'series_end':34044, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':33001, 'm_end':33044, 'plane':'COR'}
 
 REPLAN_1
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':45001, 'series_end':45061, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':46001, 'series_end':46061, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':45001, 'm_end':45061, 'plane':'COR'}
 -----------------------------------
 PLAN_2
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':57001, 'series_end':57034, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':58001, 'series_end':58034, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':57001, 'm_end':57034, 'plane':'COR'}
 
 REPLAN_2
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':60001, 'series_end':60051, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':61001, 'series_end':61051, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':60001, 'm_end':60051, 'plane':'COR'}
 -----------------------------------
 PLAN_3
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':68001, 'series_end':68027, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':69001, 'series_end':69027, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':68001, 'm_end':68027, 'plane':'COR'}
 
 REPLAN_3
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':71001, 'series_end':71038, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':72001, 'series_end':72038, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':71001, 'm_end':71038, 'plane':'COR'}
 -----------------------------------
 PLAN_4
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':77001, 'series_end':77033, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':78001, 'series_end':78033, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':77001, 'm_end':77033, 'plane':'COR'}
 
 REPLAN_4
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':82001, 'series_end':82026, 'plane':'COR', 'modality': 'M'}
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'series_start':83001, 'series_end':83026, 'plane':'COR', 'modality': 'P'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':82001, 'm_end':82026, 'plane':'COR'}
 -----------------------------------
 
 
@@ -54,31 +45,23 @@ exec(open(scriptPath, encoding='utf-8').read(), script_globals)
 
 """
 
-# Paste in Slicer's Python Console
-
-import os, re
+import os, re, math
 import slicer
-import SimpleITK as sitk
-import sitkUtils
-import slicer
-import re, math
 
-# --- helpers copied/adapted from earlier ---
+# --------- filename parsing (same as yours) ----------
 FILENAME_RE = re.compile(r"""^(?P<study>[A-Za-z0-9\-]+?)-(?P<series>\d+)-(?P<desc>[^-]+?)-\[(?P<rot>[^\]]+)\]-\[(?P<type>[^\]]+)\]\.nrrd$""")
 
 def parse(fname):
     m = FILENAME_RE.match(fname)
     if not m:
         return None
-    d = m.groupdict()                 # includes 'study','series','desc','rot','type'
+    d = m.groupdict()
     d["series"] = int(d["series"])
-    d["type"]   = " ".join(d["type"].split())   # normalize spaces
+    d["type"]   = " ".join(d["type"].split())
     d["__fname"] = fname
     return d
 
-
 def _nums_from_str(s):
-    # robustly pull floats/ints out of strings like "[1  0  0  0  0  -1]"
     return [float(x) for x in re.findall(r'[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?', s)]
 
 def _unit(v):
@@ -86,10 +69,6 @@ def _unit(v):
     return (v[0]/n, v[1]/n, v[2]/n) if n else (0.0, 0.0, 0.0)
 
 def nearestAxisIdx(v):
-    """
-    v can be a tuple/list of 3 floats OR a string like "[0 1 0]".
-    Returns 0 for R(x), 1 for A(y), 2 for S(z).
-    """
     if isinstance(v, str):
         nums = _nums_from_str(v)
         if len(nums) < 3:
@@ -100,113 +79,130 @@ def nearestAxisIdx(v):
     return a.index(max(a))
 
 def planeFromRot(rot):
-    """
-    rot is the 6-number string inside brackets in the filename.
-    Works for any sign/order; classifies by in-plane axes (fallback: normal).
-    Returns 'AX'|'COR'|'SAG' or None.
-    """
     nums = _nums_from_str(rot)
     if len(nums) != 6:
         return None
-
     u = _unit((nums[0], nums[1], nums[2]))
     v = _unit((nums[3], nums[4], nums[5]))
-
-    # primary attempt: which two axes are spanned?
     axes = {nearestAxisIdx(u), nearestAxisIdx(v)}
-    if axes == {0, 1}:  # R & A
-        return "AX"
-    if axes == {0, 2}:  # R & S
-        return "COR"
-    if axes == {1, 2}:  # A & S
-        return "SAG"
-
-    # fallback: use normal
+    if axes == {0,1}: return "AX"
+    if axes == {0,2}: return "COR"
+    if axes == {1,2}: return "SAG"
     nx = u[1]*v[2] - u[2]*v[1]
     ny = u[2]*v[0] - u[0]*v[2]
     nz = u[0]*v[1] - u[1]*v[0]
-    n_axis = nearestAxisIdx((nx, ny, nz))
+    n_axis = nearestAxisIdx((nx,ny,nz))
     return {"2":"AX","1":"COR","0":"SAG"}[str(n_axis)]
 
-
-def hasToken(img_type, token):  # token 'M' or 'P'
+def hasToken(img_type, token):  # 'M' or 'P'
     return token in img_type.replace(",", " ").split()
 
 def findFiles(folder, study, s0, s1, plane, modality):
     out=[]
+    plane = plane.upper()
+    modality = modality.upper() if modality else None
     for fname in os.listdir(folder):
-        if not fname.lower().endswith(".nrrd"): continue
+        if not fname.lower().endswith(".nrrd"): 
+            continue
         info = parse(fname)
-        if not info: continue
-        if info["study"] != study: continue
-        if not (s0 <= info["series"] <= s1): continue
-        if planeFromRot(info["rot"]) != plane: continue
-        if modality and not hasToken(info["type"], modality): continue
+        if not info:
+            continue
+        if info["study"] != study:
+            continue
+        if not (s0 <= info["series"] <= s1):
+            continue
+        if planeFromRot(info["rot"]) != plane:
+            continue
+        if modality and not hasToken(info["type"], modality):
+            continue
         out.append((info["series"], os.path.join(folder, fname)))
     out.sort(key=lambda x:x[0])
     return out
 
+# --------- builder that pairs M/P by +offset and makes ONE synced browser ----------
 
 # ---------- SAFE EXECUTION (drop-in replacement) ----------
 try:
-    folder; study_id; series_start; series_end; plane; modality
+    folder; study_id; m_start; m_end; plane
 except NameError:
-    raise RuntimeError("Please define folder, study_id, series_start, series_end, plane, modality before running.")
+    raise RuntimeError("Please define folder, study_id, m_start, m_end, plane before running.")
 
-files = findFiles(folder, study_id, series_start, series_end, plane.upper(), (modality.upper() if modality else None))
-if not files:
-    raise RuntimeError("No matches")
+try:
+    offset
+except NameError:
+    offset = 1000
 
-print(f"[INFO] Will load {len(files)} frame(s). Building sequence…")
 
-# Pause rendering & batch scene edits to avoid UI churn crashes
+filesM = findFiles(folder, study_id, m_start, m_end, plane, 'M')
+filesP = findFiles(folder, study_id, m_start+offset, m_end+offset, plane, 'P')
+if not filesM:
+    raise RuntimeError(f"No M files found in {plane} {m_start}-{m_end}")
+
+mapM = {s:p for (s,p) in filesM}
+mapP = {s:p for (s,p) in filesP}
+
+paired, missingP = [], []
+for sM in sorted(mapM.keys()):
+    sP = sM + offset
+    if sP in mapP:
+        paired.append((sM, mapM[sM], sP, mapP[sP]))
+    else:
+        missingP.append(sM)
+if not paired:
+    raise RuntimeError("No M/P pairs matched the +offset rule.")
+if missingP:
+    print(f"[WARN] {len(missingP)} M frames lack a matching P (+{offset}).")
+
+# ---- Unified base name: "<MM>-<PP> <PLANE>", using thousands of start and start+offset
+m_thousands = m_start // 1000
+p_thousands = (m_start + offset) // 1000
+name_base = f"{m_thousands}-{p_thousands} {plane.upper()}"
+
+# Sequence nodes (keep them identifiable as M/P, but browser/mrb use the base)
+seqM = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode", name_base + " M")
+seqP = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode", name_base + " P")
+for seq in (seqM, seqP):
+    seq.SetIndexName("Frame")
+    seq.SetIndexUnit("")
+    seq.SetIndexType(slicer.vtkMRMLSequenceNode.NumericIndex)
+
 slicer.app.pauseRender()
 slicer.mrmlScene.StartState(slicer.vtkMRMLScene.BatchProcessState)
 try:
-    # Create sequence & browser
-    seqNodeName = f"{series_start}-{series_end} {modality} {plane}"
-    seqNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode", seqNodeName)
-    seqNode.SetIndexName("SeriesNumber")
-    seqNode.SetIndexUnit("")  # optional
-
-    browserName = f"Browser_{series_start}-{series_end} {modality} {plane}"
-    browser = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceBrowserNode", browserName)
-    browser.SetAndObserveMasterSequenceNodeID(seqNode.GetID())
-
-    # Determine zero-pad width from series range (e.g., 33001..33081 -> width 5)
-    zwidth = max(1, len(str(max(s for s,_ in files))))
-
-    prev_series = None
-    for series, path in files:
-        # Gaps report
-        if prev_series is not None and series != prev_series + 1:
-            missing = list(range(prev_series + 1, series))
-            print(f"[WARN] Missing series: {missing}")
-        prev_series = series
-        print(f"[FRAME] series={series}  file={os.path.basename(path)}")
-        # NEW API: returns the node directly; DO NOT pass returnNode
-        vol = slicer.util.loadNodeFromFile(
-            path,
-            "VolumeFile",
-            {"name": os.path.basename(path), "singleFile": True}
-        )
-        if not vol:
-            print(f"[WARN] Failed to load {path}, skipping.")
-            continue
-        idx_str = f"{series:0{zwidth}d}"
-        seqNode.SetDataNodeAtValue(vol, idx_str)
-        slicer.mrmlScene.RemoveNode(vol)
-    browser.SetSelectedItemNumber(0)
-
+    for frame_idx, (_, pM, _, pP) in enumerate(paired):
+        volM = slicer.util.loadNodeFromFile(pM, "VolumeFile", {"name": os.path.basename(pM), "singleFile": True})
+        if volM:
+            seqM.SetDataNodeAtValue(volM, str(frame_idx))
+            slicer.mrmlScene.RemoveNode(volM)
+        else:
+            print(f"[WARN] Failed to load {pM}")
+        volP = slicer.util.loadNodeFromFile(pP, "VolumeFile", {"name": os.path.basename(pP), "singleFile": True})
+        if volP:
+            seqP.SetDataNodeAtValue(volP, str(frame_idx))
+            slicer.mrmlScene.RemoveNode(volP)
+        else:
+            print(f"[WARN] Failed to load {pP}")
 finally:
     slicer.mrmlScene.EndState(slicer.vtkMRMLScene.BatchProcessState)
     slicer.app.resumeRender()
 
-print(f"[OK] Sequence built with {seqNode.GetNumberOfDataNodes()} items (original geometry preserved).")
+print(f"[OK] Built sequences: {seqM.GetNumberOfDataNodes()} (M), {seqP.GetNumberOfDataNodes()} (P)")
 
-# Optional save (you can comment this out while debugging)
-out_name = f"{series_start}-{series_end} {modality} {plane}.mrb"
-mrb_path = os.path.join(folder, 'Sequences', out_name)
+# ---- Single synchronized browser named with the same base
+browser = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceBrowserNode", name_base)
+browser.SetAndObserveMasterSequenceNodeID(seqM.GetID())
+browser.AddSynchronizedSequenceNodeID(seqP.GetID())
+
+# create proxy nodes
+sequencesLogic = slicer.modules.sequences.logic()
+sequencesLogic.UpdateProxyNodesFromSequences(browser)
+browser.SetSelectedItemNumber(0)
+print("[OK] Synchronized browser created:", name_base)
+
+# ---- Save with the same base name
+out_dir = os.path.join(folder, "Sequences")
+os.makedirs(out_dir, exist_ok=True)
+mrb_path = os.path.join(out_dir, name_base + ".mrb")
 try:
     slicer.util.saveScene(mrb_path)
     print("[OK] Saved scene:", mrb_path)
