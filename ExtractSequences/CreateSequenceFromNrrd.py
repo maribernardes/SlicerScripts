@@ -13,12 +13,21 @@ plane        = "COR"   # 'AX'|'COR'|'SAG'
 
 
 # Define the variable to pass
--------------------------
+***************************************************************************************
+Pig 1 2025-08-20
+-----------------------------------
+PLAN_0
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-20_Pig1/NRRD", 'study_id':'045b871a-06d9-4a', 'm_start':33001, 'm_end':33081, 'plane':'COR'}
+***************************************************************************************
+
+***************************************************************************************
+Pig 2 2025-08-21
+-----------------------------------
 PLAN_1
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':33001, 'm_end':33044, 'plane':'COR'}
 
 REPLAN_1
-script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':45001, 'm_end':45061, 'plane':'COR'}
+script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':47001, 'm_end':47034, 'plane':'COR'}
 -----------------------------------
 PLAN_2
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':57001, 'm_end':57034, 'plane':'COR'}
@@ -37,8 +46,7 @@ script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 's
 
 REPLAN_4
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':82001, 'm_end':82026, 'plane':'COR'}
------------------------------------
-
+***************************************************************************************
 
 # Execute the script with the provided globals
 exec(open(scriptPath, encoding='utf-8').read(), script_globals)

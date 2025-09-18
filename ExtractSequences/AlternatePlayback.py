@@ -4,7 +4,7 @@ from __main__ import qt
 """
 # Example execution snippet:
 filePath = "/home/mariana/SlicerScripts/ExtractSequences/AlternatePlayback.py"
-script_globals = {'browserNameA': 'COR', 'browserNameB': 'SAG', 'delayms': 500, 'loop': False}
+script_globals = {'browserNameA': '33-34 COR', 'browserNameB': '33-34 SAG', 'delayms': 2000, 'loop': False}
 exec(open(filePath, encoding='utf-8').read(), script_globals)
 
 # To stop the execution
