@@ -52,20 +52,27 @@ script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 's
 exec(open(scriptPath, encoding='utf-8').read(), script_globals)
 
 """
-# -*- coding: utf-8 -*-
-import os, re, math
+import os, re, math, gc
 import slicer
 
-# === inputs ===
+# ========= OTHER INPUTS =========
 offset       = 1000             # M->P series offset
-clear_between_planes = False    # set True to save a separate, minimal scene per plane
+clear_between_planes = True    # set True to save a separate, minimal scene per plane
+save_dir     = os.path.join(folder, "Sequences")
+initial_cleanup = True  # If you want to be absolutely sure the script starts clean, set initial_cleanup = True. 
+                        # If you’re running inside a fresh Slicer session or you want to keep other nodes, set it to False.
+# =================================
 
-# --- filename parsing helpers (same as before) ---
-FILENAME_RE = re.compile(r"""^(?P<study>[A-Za-z0-9\-]+?)-(?P<series>\d+)-(?P<desc>[^-]+?)-\[(?P<rot>[^\]]+)\]-\[(?P<type>[^\]]+)\]\.nrrd$""")
+
+# --------- filename parsing helpers ----------
+FILENAME_RE = re.compile(
+    r"""^(?P<study>[A-Za-z0-9\-]+?)-(?P<series>\d+)-(?P<desc>[^-]+?)-\[(?P<rot>[^\]]+)\]-\[(?P<type>[^\]]+)\]\.nrrd$"""
+)
 
 def parse(fname):
     m = FILENAME_RE.match(fname)
-    if not m: return None
+    if not m:
+        return None
     d = m.groupdict()
     d["series"] = int(d["series"])
     d["type"]   = " ".join(d["type"].split())
@@ -105,15 +112,15 @@ def planeFromRot(rot):
     n_axis = nearestAxisIdx((nx,ny,nz))
     return {"2":"AX","1":"COR","0":"SAG"}[str(n_axis)]
 
-def hasToken(img_type, token):  # 'M' or 'P'
+def hasToken(img_type, token):  # token 'M' or 'P'
     return token in img_type.replace(",", " ").split()
 
 def findFiles(folder, study, s0, s1, plane, modality):
-    out=[]
+    out = []
     plane = plane.upper()
     modality = modality.upper() if modality else None
     for fname in os.listdir(folder):
-        if not fname.lower().endswith(".nrrd"): 
+        if not fname.lower().endswith(".nrrd"):
             continue
         info = parse(fname)
         if not info:
@@ -127,11 +134,13 @@ def findFiles(folder, study, s0, s1, plane, modality):
         if modality and not hasToken(info["type"], modality):
             continue
         out.append((info["series"], os.path.join(folder, fname)))
-    out.sort(key=lambda x:x[0])
+    out.sort(key=lambda x: x[0])
     return out
 
 def _format_ranges(nums):
-    if not nums: return ""
+    if not nums:
+        return ""
+    nums = sorted(nums)
     ranges = []
     start = prev = nums[0]
     for n in nums[1:]:
@@ -141,40 +150,84 @@ def _format_ranges(nums):
             ranges.append((start, prev))
             start = prev = n
     ranges.append((start, prev))
-    return ", ".join(f"{a}" if a==b else f"{a}–{b}" for a,b in ranges)
+    return ", ".join(f"{a}" if a == b else f"{a}–{b}" for a, b in ranges)
 
-def build_for_plane(plane):
+# ---------- cleanup helpers ----------
+def remove_sequence_nodes():
+    """Remove prior sequence-related nodes (browsers + sequences + common proxies) without touching singletons."""
+    for cls in ("vtkMRMLSequenceBrowserNode", "vtkMRMLSequenceNode"):
+        for n in list(slicer.util.getNodesByClass(cls)):
+            slicer.mrmlScene.RemoveNode(n)
+    # Remove likely proxies with our naming patterns
+    for n in list(slicer.util.getNodes("*").values()):
+        nm = n.GetName() if hasattr(n, "GetName") else ""
+        if any(tag in nm for tag in (" Browser", " M", " P")):
+            try:
+                slicer.mrmlScene.RemoveNode(n)
+            except Exception:
+                pass
+    slicer.app.processEvents()
+
+def soft_clear_scene():
+    """Try to clear the scene but keep singletons. Falls back to targeted cleanup if not supported."""
+    try:
+        slicer.mrmlScene.Clear(False)   # keep singletons/views/modules
+        slicer.app.processEvents()
+        print("[INIT] Soft-cleared scene (kept singletons).")
+    except Exception as e:
+        print("[INIT] Soft clear failed; falling back to targeted cleanup:", e)
+        # remove common data-bearing nodes (defensive)
+        classes = [
+            "vtkMRMLSequenceBrowserNode","vtkMRMLSequenceNode",
+            "vtkMRMLScalarVolumeNode","vtkMRMLVectorVolumeNode","vtkMRMLLabelMapVolumeNode",
+            "vtkMRMLMarkupsFiducialNode","vtkMRMLMarkupsCurveNode","vtkMRMLMarkupsPlaneNode",
+            "vtkMRMLTransformNode","vtkMRMLModelNode","vtkMRMLTableNode"
+        ]
+        for cls in classes:
+            for n in list(slicer.util.getNodesByClass(cls)):
+                slicer.mrmlScene.RemoveNode(n)
+        slicer.app.processEvents()
+        print("[INIT] Targeted cleanup complete.")
+
+# ---------- optional initial cleanup ----------
+if initial_cleanup:
+    soft_clear_scene()
+
+# ============ PASS 1: discover pairable frames per plane ============
+plane_info = {}
+for pl in planes:
+    filesM = findFiles(folder, study_id, m_start, m_end, pl, 'M')
+    filesP = findFiles(folder, study_id, m_start + offset, m_end + offset, pl, 'P')
+    mapM = {s: p for (s, p) in filesM}
+    mapP = {s: p for (s, p) in filesP}
+    pairable = {s for s in mapM.keys() if (s + offset) in mapP}
+    plane_info[pl] = {"mapM": mapM, "mapP": mapP, "pairable": pairable}
+
+global_pairable = None
+for pl, info in plane_info.items():
+    if global_pairable is None:
+        global_pairable = set(info["pairable"])
+    else:
+        global_pairable &= info["pairable"]
+
+global_pairable = sorted(global_pairable)
+if not global_pairable:
+    for pl, info in plane_info.items():
+        print(f"[WARN] {pl}: pairable frames: {_format_ranges(sorted(info['pairable'])) or 'none'}")
+    raise RuntimeError("No common pairable frames across requested planes (M&P).")
+
+excluded_by_filter = sorted(set(range(m_start, m_end + 1)) - set(global_pairable))
+if excluded_by_filter:
+    print(f"[WARN] Cross-plane sync filter excluded: {_format_ranges(excluded_by_filter)}")
+
+# ============ builder ============
+def build_for_plane(plane, kept_frames, info):
     plane = plane.upper()
-    print(f"\n===== Building synchronized M/P browser for {plane} [{m_start}..{m_end}] =====")
-
-    filesM = findFiles(folder, study_id, m_start, m_end, plane, 'M')
-    filesP = findFiles(folder, study_id, m_start+offset, m_end+offset, plane, 'P')
-    if not filesM:
-        print(f"[WARN] No M files found in {plane} {m_start}-{m_end}")
-        return
-
-    mapM = {s:p for (s,p) in filesM}
-    mapP = {s:p for (s,p) in filesP}
-
-    paired, missingP = [], []
-    for sM in sorted(mapM.keys()):
-        sP = sM + offset
-        if sP in mapP:
-            paired.append((sM, mapM[sM], sP, mapP[sP]))
-        else:
-            missingP.append(sM)
-
-    if not paired:
-        print(f"[WARN] No M/P pairs matched +{offset} for {plane}.")
-        return
-    if missingP:
-        print(f"[WARN] {len(missingP)} M frames have no matching P (+{offset}): {_format_ranges(sorted(missingP))}")
-
+    kept_frames = sorted(kept_frames)
     m_thousands = m_start // 1000
     p_thousands = (m_start + offset) // 1000
     name_base = f"{m_thousands}-{p_thousands} {plane}"
 
-    # Create sequences
     seqM = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode", name_base + " M")
     seqP = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode", name_base + " P")
     for seq in (seqM, seqP):
@@ -182,71 +235,62 @@ def build_for_plane(plane):
         seq.SetIndexUnit("")
         seq.SetIndexType(slicer.vtkMRMLSequenceNode.NumericIndex)
 
-    included_series = []
+    included = []
 
     slicer.app.pauseRender()
     slicer.mrmlScene.StartState(slicer.vtkMRMLScene.BatchProcessState)
     try:
-        for frame_idx, (sM, pM, sP, pP) in enumerate(paired):
-            ok = True
-
-            volM = slicer.util.loadNodeFromFile(pM, "VolumeFile", {"name": os.path.basename(pM), "singleFile": True})
+        for frame_idx, sM in enumerate(kept_frames):
+            pM = info["mapM"].get(sM)
+            pP = info["mapP"].get(sM + offset)
+            if not pM or not pP:
+                continue
+            volM = slicer.util.loadNodeFromFile(pM, "VolumeFile", {"singleFile": True})
+            volP = slicer.util.loadNodeFromFile(pP, "VolumeFile", {"singleFile": True})
             if volM:
                 seqM.SetDataNodeAtValue(volM, str(frame_idx))
                 slicer.mrmlScene.RemoveNode(volM)
-            else:
-                ok = False
-                print(f"[WARN] Failed to load M series {sM}: {pM}")
-
-            volP = slicer.util.loadNodeFromFile(pP, "VolumeFile", {"name": os.path.basename(pP), "singleFile": True})
             if volP:
                 seqP.SetDataNodeAtValue(volP, str(frame_idx))
                 slicer.mrmlScene.RemoveNode(volP)
-            else:
-                ok = False
-                print(f"[WARN] Failed to load P series {sP}: {pP}")
-
-            if ok:
-                included_series.append(sM)
+            if volM and volP:
+                included.append(sM)
     finally:
         slicer.mrmlScene.EndState(slicer.vtkMRMLScene.BatchProcessState)
         slicer.app.resumeRender()
 
-    print(f"[OK] Built sequences for {plane}: {seqM.GetNumberOfDataNodes()} (M), {seqP.GetNumberOfDataNodes()} (P)")
-
-    # One synchronized browser for THIS plane
     browser = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceBrowserNode", name_base + " Browser")
     browser.SetAndObserveMasterSequenceNodeID(seqM.GetID())
     browser.AddSynchronizedSequenceNodeID(seqP.GetID())
-    sequencesLogic = slicer.modules.sequences.logic()
-    sequencesLogic.UpdateProxyNodesFromSequences(browser)
+    slicer.modules.sequences.logic().UpdateProxyNodesFromSequences(browser)
     browser.SetSelectedItemNumber(0)
-    print("[OK] Synchronized browser created:", name_base, "Browser")
 
-    # Missing frame warning (strict: not included in the built sequence)
-    expected = set(range(m_start, m_end + 1))
-    missing_frames = sorted(expected - set(included_series))
-    if missing_frames:
-        print(f"[WARN] {plane}: Frames missing from sequence [{m_start}..{m_end}]: {_format_ranges(missing_frames)}")
-    else:
-        print(f"[OK] {plane}: All frames [{m_start}..{m_end}] included.")
+    print(f"[OK] {plane}: {seqM.GetNumberOfDataNodes()} frames M, {seqP.GetNumberOfDataNodes()} frames P")
+    return name_base
 
-    # Save a scene snapshot for this plane
-    out_dir = os.path.join(folder, "Sequences")
-    os.makedirs(out_dir, exist_ok=True)
-    mrb_path = os.path.join(out_dir, name_base + ".mrb")
-    try:
-        slicer.util.saveScene(mrb_path)
-        print("[OK] Saved scene:", mrb_path)
-    except Exception as e:
-        print("[WARN] saveScene failed for", plane, ":", e)
+# ============ PASS 2: build & save per plane ============
+os.makedirs(save_dir, exist_ok=True)
 
-    return (seqM, seqP, browser)
-
-# === run for all requested planes ===
-all_nodes = []
 for pl in planes:
-    if clear_between_planes and slicer.mrmlScene.GetNumberOfNodes() > 0:
-        slicer.mrmlScene.Clear(0)
-    nodes = build_for_plane(pl)
-    all_nodes.append(nodes)
+    # ensure no residues from previous runs before building/saving this plane
+    remove_sequence_nodes()
+
+    name_base = build_for_plane(pl, global_pairable, plane_info[pl])
+
+    # paranoid: ensure only this plane’s nodes remain before saving
+    for n in list(slicer.util.getNodesByClass("vtkMRMLSequenceNode")):
+        if pl not in n.GetName():
+            slicer.mrmlScene.RemoveNode(n)
+    for n in list(slicer.util.getNodesByClass("vtkMRMLSequenceBrowserNode")):
+        if pl not in n.GetName():
+            slicer.mrmlScene.RemoveNode(n)
+    slicer.app.processEvents()
+
+    mrb_path = os.path.join(save_dir, name_base + ".mrb")
+    slicer.util.saveScene(mrb_path)
+    print("[OK] Saved:", mrb_path)
+
+    # remove this plane’s nodes before next plane (keeps scene minimal throughout)
+    remove_sequence_nodes()
+
+print("\n[DONE] Saved independent bundles for:", ", ".join(planes))
