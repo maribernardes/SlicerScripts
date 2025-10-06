@@ -5,7 +5,7 @@
 filePath = "/home/mariana/SlicerScripts/OBGYNBrachyCatheters/CreateCatheter3DModels.py"
 
 # Define the variable to pass
-script_globals = {'N': 28, 'prefix': 'C', 'radius_mm': 0.6}
+script_globals = {'N': 8, 'prefix': 'T', 'radius_mm': 0.6}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)

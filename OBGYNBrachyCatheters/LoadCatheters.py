@@ -5,7 +5,8 @@
 filePath = "/home/mariana/SlicerScripts/OBGYNBrachyCatheters/LoadCatheters.py"
 
 # Define the variable to pass
-script_globals = {'N': 28, 'folder': '/home/mariana/SlicerScenes/2024-11-11_GynBrachyteraphy/catheter_csv', 'inputName': 'C'}
+script_globals = {'start':1, 'N': 28, 'folder': '/home/mariana/SlicerScenes/2024-11-11_GynBrachyteraphy/catheter_csv'}
+script_globals = {'start':3, 'N': 1, 'folder': '/home/mariana/Experiments/2025-08-21_Pig2/trajectories_csv', 'fileName':'R'}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)
@@ -17,11 +18,11 @@ import slicer
 import vtk
 import numpy as np
 
-def import_catheters(N, folder, fileName):
+def import_catheters(start, N, folder, fileName):
 
     required_cols = ['label', 'r', 'a', 's']  # defined/selected/visible/locked are optional; we set them to 1 anyway
     
-    for i in range(1, N + 1):
+    for i in range(start, N + start):
         base = str(fileName) + str(i)
         csv_path = os.path.join(folder, f"{base}.csv")
         if not os.path.isfile(csv_path):
@@ -116,15 +117,20 @@ def import_catheters(N, folder, fileName):
         print(f"[OK] Imported {nrows} points into Markups node '{markupsName}' and deleted table.")
 
 
-def main(N, folder, fileName):
+def main(start, N, folder, fileName):
     #  Load fileNamei.csv for i in [1..N], create/update Markups nodes named Ci with points
     # from the CSV table, then remove the temporary table nodes.
     print(f"Loading total of {N} catheters with input name '{fileName}'.")    
-    import_catheters(N, folder, fileName)
+    import_catheters(start, N, folder, fileName)
     print("[DONE] Import finished.")
 
 
-# Check if 'N' and 'inputName' is defined in the global namespace
+# Check if 'N' and 'folder' is defined in the global namespace
+try:
+    start
+except NameError:
+    start = 1
+
 try:
     N
 except NameError:
@@ -140,10 +146,10 @@ try:
 except NameError:
     fileName = 'C'
 
-if None in (N, folder):
+if None in (start, N, folder):
     # Handle the case where inputs are not provided
     print("Error: Missing one or more inputs.")
     print("Please define 'N' and 'folder' before executing the script.")
 else:
     # Call the main function with the inputs
-    main(N, folder, fileName)
+    main(start, N, folder, fileName)
