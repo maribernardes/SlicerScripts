@@ -5,6 +5,7 @@ filePath = "/home/mariana/SlicerScripts/ScalarVolumes/CompareBias.py"
 
 # Define the variable to pass
 script_globals = {'volumeA': '71-72 COR M', 'volumeB': '71-72 SAG M', 'maskA': 'Mask', 'maskB': 'Mask'}
+script_globals = {'volumeA': '82-83 COR M', 'volumeB': '82-83 SAG M', 'maskA': 'Mask', 'maskB': 'Mask'}
 
 # Execute the script with the provided globals
 exec(open(filePath, encoding='utf-8').read(), script_globals)
