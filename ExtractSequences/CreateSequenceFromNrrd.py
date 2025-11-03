@@ -9,42 +9,42 @@ folder       = "/home/mariana/Experiments/2025-08-21_Pig2/NRRD"
 study_id     = "09450140-98d9-4d"
 m_start = 68001
 m_end   = 68027
-plane        = "COR"   # 'AX'|'COR'|'SAG'
+planes = ('COR', 'SAG')  # 'AX'|'COR'|'SAG'
 
 
 # Define the variable to pass
 ***************************************************************************************
 Pig 1 2025-08-20
 -----------------------------------
-PLAN_0
+T8 = PLAN_0
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-20_Pig1/NRRD", 'study_id':'045b871a-06d9-4a', 'm_start':33001, 'm_end':33081, 'planes':('COR', 'SAG')}
 ***************************************************************************************
 
 ***************************************************************************************
 Pig 2 2025-08-21
 -----------------------------------
-PLAN_1
+T1 = PLAN_1
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':33001, 'm_end':33044, 'planes':('COR', 'SAG')}
 
-REPLAN_1
+T2 = REPLAN_1
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':47001, 'm_end':47034, 'planes':('COR', 'SAG')}
 -----------------------------------
-PLAN_2
+T3 = PLAN_2
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':57001, 'm_end':57034, 'planes':('COR', 'SAG')}
 
-REPLAN_2
+T4 = REPLAN_2
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':60001, 'm_end':60051, 'planes':('COR', 'SAG')}
 -----------------------------------
-PLAN_3
+TX = PLAN_3
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':68001, 'm_end':68027, 'planes':('COR', 'SAG')}
 
-REPLAN_3
+T5 = REPLAN_3
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':71001, 'm_end':71038, 'planes':('COR', 'SAG')}
 -----------------------------------
-PLAN_4
+T6 = PLAN_4
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':77001, 'm_end':77033, 'planes':('COR', 'SAG')}
 
-REPLAN_4
+T7 = REPLAN_4
 script_globals = {'folder': "/home/mariana/Experiments/2025-08-21_Pig2/NRRD", 'study_id':'09450140-98d9-4d', 'm_start':82001, 'm_end':82026, 'planes':('COR', 'SAG')}
 ***************************************************************************************
 
