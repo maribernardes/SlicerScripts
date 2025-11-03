@@ -5,18 +5,31 @@ from __main__ import qt
 """
 # Example execution snippet:
 filePath = "/home/mariana/SlicerScripts/ExtractSequences/AlternatePlayback.py"
+filePath = "/Users/pl771/SlicerScripts/ExtractSequences/AlternatePlayback.py"
 
 #T1
-script_globals = {'browserNameA': '33-34 SAG', 'browserNameB': '33-34 COR', 'delayms': 1000, 'firstFrame': 26, 'loop': False}
+script_globals = {'browserNameA': '33-34 SAG', 'browserNameB': '33-34 COR', 'delayms': 1000, 'firstFrame': 32, 'lastFrame': 39, 'loop': False}
 
 #T2
-script_globals = {'browserNameA': '47-48 SAG', 'browserNameB': '47-48 COR', 'delayms': 1000, 'firstFrame': 20, 'lastFrame': 29,'loop': False}
+script_globals = {'browserNameA': '47-48 SAG', 'browserNameB': '47-48 COR', 'delayms': 1000, 'firstFrame': 22, 'lastFrame': 29,'loop': False}
 
 #T3
-script_globals = {'browserNameA': '57-58 SAG', 'browserNameB': '57-58 COR', 'delayms': 1000, 'firstFrame': 5, 'lastFrame': 29,'loop': False}
+script_globals = {'browserNameA': '57-58 SAG', 'browserNameB': '57-58 COR', 'delayms': 1000, 'firstFrame': 10, 'lastFrame': 29,'loop': False}
 
-# T8:
-script_globals = {'browserNameA': '33-34 COR Browser', 'browserNameB': '33-34 SAG Browser', 'delayms': 1000, 'firstFrame': 55, 'loop': False}
+#T4
+script_globals = {'browserNameA': '60-61 SAG', 'browserNameB': '60-61 COR', 'delayms': 1000, 'firstFrame': 34, 'lastFrame': 48,'loop': False}
+
+#T5
+script_globals = {'browserNameA': '71-72 SAG', 'browserNameB': '71-72 COR', 'delayms': 1000, 'firstFrame': 21, 'lastFrame': 34,'loop': False}
+
+#T6
+script_globals = {'browserNameA': '77-78 SAG Browser', 'browserNameB': '77-78 COR Browser', 'delayms': 1000, 'firstFrame': 14, 'lastFrame': 26,'loop': False}
+
+#T7
+script_globals = {'browserNameA': '82-83 SAG', 'browserNameB': '82-83 COR', 'delayms': 1000, 'firstFrame': 1, 'lastFrame': 23,'loop': False}
+
+#T8:
+script_globals = {'browserNameA': '33-34 COR Browser', 'browserNameB': '33-34 SAG Browser', 'delayms': 1000, 'firstFrame': 55, 'lastFrame': 72, 'loop': False}
 
 
 exec(open(filePath, encoding='utf-8').read(), script_globals)
@@ -95,8 +108,8 @@ def alternate_playback(browser_name_A: str, browser_name_B: str, delay_ms: float
 
     # Set final frame
     if last_frame >=0:
-        lastFrameA = last_frame
-        lastFrameB = last_frame
+        lastFrameA = min(last_frame, getMaxIndex(browserA))
+        lastFrameB = min(last_frame, getMaxIndex(browserB))
     else:
         lastFrameA = getMaxIndex(browserA)
         lastFrameB = getMaxIndex(browserB)
