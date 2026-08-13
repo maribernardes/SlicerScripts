@@ -26,6 +26,7 @@ script_globals = {
     'browserNameB': '33-34 COR',
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [32, 32],
     'lastFrame': [40, 39],
@@ -39,6 +40,7 @@ script_globals = {
     'browserNameB': '47-48 COR',
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [22, 22],
     'lastFrame': [29, 29],
@@ -52,6 +54,7 @@ script_globals = {
     'browserNameB': '57-58 COR',
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [10, 10],
     'lastFrame': [29, 29],
@@ -65,6 +68,7 @@ script_globals = {
     'browserNameB': '60-61 COR',
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [33, 34],
     'lastFrame': [47, 48],
@@ -78,6 +82,7 @@ script_globals = {
     'browserNameB': '71-72 COR',
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [21, 21],
     'lastFrame': [34, 33],
@@ -91,6 +96,7 @@ script_globals = {
     'browserNameB': '77-78 COR Browser',
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [14, 14],
     'lastFrame': [26, 26],
@@ -104,6 +110,7 @@ script_globals = {
     'browserNameB': '82-83 SAG',
     'viewerColorA': 'Green',
     'viewerColorB': 'Yellow',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [0, 1],
     'lastFrame': [22, 23],
@@ -117,6 +124,7 @@ script_globals = {
     'browserNameB': '33-34 SAG Browser',
     'viewerColorA': 'Green',
     'viewerColorB': 'Yellow',
+    'fiducialName': 'NeedleTip',
     'delayms': 1000,
     'firstFrame': [55, 55],
     'lastFrame': [70, 69],
@@ -132,10 +140,14 @@ script_globals['stop_alternate_playback']()
 """
 
 
-# Global timer handles to allow external stopping
+# Global timer and observer handles to allow external stopping
 
 startPlaybackTimer = None
 alternatePlaybackTimer = None
+
+needleTipNode = None
+needleTipObserverTag = None
+
 
 def setupCustomLayout():
     """
@@ -242,11 +254,106 @@ def initializeViews():
         if sliceWidget is not None:
             sliceWidget.sliceLogic().FitSliceToAll()
 
+def updateSliceViewsFromFiducial(
+    fiducial_node,
+    viewer_colors=("Green", "Yellow")
+):
+    """
+    Move the selected slice planes so that they pass through
+    the first control point of the specified fiducial node.
+
+    Only the slice offset is changed. The current zoom/FOV and
+    in-plane image position are preserved.
+    """
+
+    if fiducial_node is None:
+        return
+
+    if fiducial_node.GetNumberOfControlPoints() == 0:
+        return
+
+    # Get first fiducial point in world/RAS coordinates
+    ras = [0.0, 0.0, 0.0]
+    fiducial_node.GetNthControlPointPositionWorld(0, ras)
+
+    for color in viewer_colors:
+
+        sliceNode = slicer.mrmlScene.GetNodeByID(
+            f"vtkMRMLSliceNode{color}"
+        )
+
+        if sliceNode is None:
+            print(f"Warning: Could not find {color} slice node.")
+            continue
+
+        # Third column of SliceToRAS is the slice-plane normal
+        sliceToRAS = sliceNode.GetSliceToRAS()
+
+        normal = [
+            sliceToRAS.GetElement(0, 2),
+            sliceToRAS.GetElement(1, 2),
+            sliceToRAS.GetElement(2, 2)
+        ]
+
+        # Position of the fiducial along the slice normal
+        sliceOffset = (
+            ras[0] * normal[0]
+            + ras[1] * normal[1]
+            + ras[2] * normal[2]
+        )
+
+        # Move only the slice plane
+        sliceNode.SetSliceOffset(sliceOffset)
+
+
+def observeFiducial(fiducial_name):
+    """
+    Observe the specified fiducial node and update the Green
+    and Yellow slice positions whenever its first point changes.
+    """
+
+    global needleTipNode
+    global needleTipObserverTag
+
+    # Remove previous observer if the script is run again
+    if (
+        needleTipNode is not None
+        and needleTipObserverTag is not None
+    ):
+        needleTipNode.RemoveObserver(
+            needleTipObserverTag
+        )
+
+    needleTipNode = slicer.util.getNode(fiducial_name)
+
+    def onFiducialModified(caller=None, event=None):
+        updateSliceViewsFromFiducial(
+            needleTipNode,
+            viewer_colors=("Green", "Yellow")
+        )
+
+    needleTipObserverTag = needleTipNode.AddObserver(
+        needleTipNode.PointModifiedEvent,
+        onFiducialModified
+    )
+
+    # Set the slice positions immediately to the current point
+    updateSliceViewsFromFiducial(
+        needleTipNode,
+        viewer_colors=("Green", "Yellow")
+    )
+
+    print(
+        f"Observing fiducial '{fiducial_name}' "
+        "for Green/Yellow slice updates."
+    )
+
 def alternate_playback(
     browser_name_A: str,
     browser_name_B: str,
     viewer_color_A: str,
     viewer_color_B: str,
+    fiducial_name: str,
     delay_ms: float = 1000,
     first_frame=(0, 0),
     last_frame=(-1, -1),
@@ -296,6 +403,7 @@ def alternate_playback(
             "different slice viewers."
         )
 
+    
     if len(first_frame) != 2:
         raise ValueError(
             "'first_frame' must contain two elements: "
@@ -310,6 +418,9 @@ def alternate_playback(
 
     # Initialize Slicer views for recording
     initializeViews()
+
+    # Update Green and Yellow slice positions from the fiducial
+    observeFiducial(fiducial_name)
 
     # Get Sequence Browser nodes
     browserA = slicer.util.getNode(browser_name_A)
@@ -508,10 +619,12 @@ def alternate_playback(
 
 
 def stop_alternate_playback():
-    """Stop the delayed start or alternating playback."""
+    """Stop the delayed start, playback, and fiducial observer."""
 
     global startPlaybackTimer
     global alternatePlaybackTimer
+    global needleTipNode
+    global needleTipObserverTag
 
     stopped = False
 
@@ -523,10 +636,21 @@ def stop_alternate_playback():
         alternatePlaybackTimer.stop()
         stopped = True
 
+    if (
+        needleTipNode is not None
+        and needleTipObserverTag is not None
+    ):
+        needleTipNode.RemoveObserver(
+            needleTipObserverTag
+        )
+
+        needleTipObserverTag = None
+        stopped = True
+
     if stopped:
         print("Alternate playback stopped.")
     else:
-        print("No active timer to stop.")
+        print("No active timer or observer to stop.")
 
 
 # Check for external variables and call playback if available
@@ -550,6 +674,11 @@ try:
     viewerColorB
 except NameError:
     viewerColorB = None
+
+try:
+    fiducialName
+except NameError:
+    fiducialName = None
 
 try:
     delayms
@@ -577,12 +706,13 @@ if None in (
     browserNameB,
     viewerColorA,
     viewerColorB,
+    fiducialName,
     delayms
 ):
     print(
         "Error: Missing 'browserNameA', 'browserNameB', "
-        "'viewerColorA', 'viewerColorB', or 'delayms'. "
-        "Please define them before executing the script."
+        "'viewerColorA', 'viewerColorB', 'fiducialName', "
+        "or 'delayms'. Please define them before executing the script."
     )
 else:
     alternate_playback(
@@ -590,6 +720,7 @@ else:
         browser_name_B=browserNameB,
         viewer_color_A=viewerColorA,
         viewer_color_B=viewerColorB,
+        fiducial_name=fiducialName,
         delay_ms=delayms,
         first_frame=firstFrame,
         last_frame=lastFrame,
