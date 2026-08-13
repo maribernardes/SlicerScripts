@@ -1,4 +1,5 @@
 import slicer
+import vtk
 import time
 from __main__ import qt
 
@@ -27,6 +28,7 @@ script_globals = {
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [32, 32],
     'lastFrame': [40, 39],
@@ -41,6 +43,7 @@ script_globals = {
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [22, 22],
     'lastFrame': [29, 29],
@@ -55,6 +58,7 @@ script_globals = {
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [10, 10],
     'lastFrame': [29, 29],
@@ -69,6 +73,7 @@ script_globals = {
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [33, 34],
     'lastFrame': [47, 48],
@@ -83,6 +88,7 @@ script_globals = {
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [21, 21],
     'lastFrame': [34, 33],
@@ -97,6 +103,7 @@ script_globals = {
     'viewerColorA': 'Yellow',
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [14, 14],
     'lastFrame': [26, 26],
@@ -111,6 +118,7 @@ script_globals = {
     'viewerColorA': 'Green',
     'viewerColorB': 'Yellow',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [0, 1],
     'lastFrame': [22, 23],
@@ -125,6 +133,7 @@ script_globals = {
     'viewerColorA': 'Green',
     'viewerColorB': 'Yellow',
     'fiducialName': 'NeedleTip',
+    'confidenceNodeName': 'CurrentTipConfidence',
     'delayms': 1000,
     'firstFrame': [55, 55],
     'lastFrame': [70, 69],
@@ -145,8 +154,12 @@ script_globals['stop_alternate_playback']()
 startPlaybackTimer = None
 alternatePlaybackTimer = None
 
-needleTipNode = None
-needleTipObserverTag = None
+confidenceNode = None
+confidenceObserverTag = None
+
+# Slice viewer waiting for the tracking result of the most recently
+# updated browser. It is set immediately before advancing a browser.
+pendingViewerColor = None
 
 
 def setupCustomLayout():
@@ -254,16 +267,19 @@ def initializeViews():
         if sliceWidget is not None:
             sliceWidget.sliceLogic().FitSliceToAll()
 
-def updateSliceViewsFromFiducial(
+def updateSliceViewFromFiducial(
     fiducial_node,
-    viewer_colors=("Green", "Yellow")
+    viewer_color
 ):
     """
-    Move the selected slice planes so that they pass through
-    the first control point of the specified fiducial node.
+    Move only the specified slice plane so that it passes through
+    the fiducial point.
 
-    Only the slice offset is changed. The current zoom/FOV and
-    in-plane image position are preserved.
+    The requested position is clamped to the actual acquired slice
+    centers of the displayed volume, preventing the viewer from
+    moving into empty/black positions outside the 3-slice stack.
+
+    Zoom/FOV and in-plane image position are preserved.
     """
 
     if fiducial_node is None:
@@ -272,81 +288,224 @@ def updateSliceViewsFromFiducial(
     if fiducial_node.GetNumberOfControlPoints() == 0:
         return
 
-    # Get first fiducial point in world/RAS coordinates
+    # Fiducial position in world/RAS coordinates
     ras = [0.0, 0.0, 0.0]
     fiducial_node.GetNthControlPointPositionWorld(0, ras)
 
-    for color in viewer_colors:
+    sliceWidget = (
+        slicer.app.layoutManager()
+        .sliceWidget(viewer_color)
+    )
 
-        sliceNode = slicer.mrmlScene.GetNodeByID(
-            f"vtkMRMLSliceNode{color}"
+    if sliceWidget is None:
+        print(
+            f"Warning: Could not find "
+            f"{viewer_color} slice widget."
         )
+        return
 
-        if sliceNode is None:
-            print(f"Warning: Could not find {color} slice node.")
-            continue
+    sliceLogic = sliceWidget.sliceLogic()
+    sliceNode = sliceLogic.GetSliceNode()
 
-        # Third column of SliceToRAS is the slice-plane normal
-        sliceToRAS = sliceNode.GetSliceToRAS()
+    # Get currently displayed background volume
+    volumeNode = (
+        sliceLogic
+        .GetBackgroundLayer()
+        .GetVolumeNode()
+    )
 
-        normal = [
-            sliceToRAS.GetElement(0, 2),
-            sliceToRAS.GetElement(1, 2),
-            sliceToRAS.GetElement(2, 2)
+    if volumeNode is None:
+        print(
+            f"Warning: No background volume displayed "
+            f"in {viewer_color}."
+        )
+        return
+
+    imageData = volumeNode.GetImageData()
+
+    if imageData is None:
+        return
+
+    # Slice normal = third column of SliceToRAS
+    sliceToRAS = sliceNode.GetSliceToRAS()
+
+    normal = [
+        sliceToRAS.GetElement(0, 2),
+        sliceToRAS.GetElement(1, 2),
+        sliceToRAS.GetElement(2, 2)
+    ]
+
+    # Requested offset from NeedleTip
+    requestedOffset = (
+        ras[0] * normal[0]
+        + ras[1] * normal[1]
+        + ras[2] * normal[2]
+    )
+
+    # Get volume dimensions
+    dimensions = imageData.GetDimensions()
+
+    # IJK-to-RAS geometry
+    ijkToRAS = vtk.vtkMatrix4x4()
+    volumeNode.GetIJKToRASMatrix(ijkToRAS)
+
+    # Use the center voxel in I and J.
+    centerI = (dimensions[0] - 1) / 2.0
+    centerJ = (dimensions[1] - 1) / 2.0
+
+    sliceOffsets = []
+
+    # Each K value is one acquired slice
+    for k in range(dimensions[2]):
+
+        ijk = [
+            centerI,
+            centerJ,
+            float(k),
+            1.0
         ]
 
-        # Position of the fiducial along the slice normal
-        sliceOffset = (
-            ras[0] * normal[0]
-            + ras[1] * normal[1]
-            + ras[2] * normal[2]
+        rasSlice = [0.0, 0.0, 0.0, 1.0]
+
+        ijkToRAS.MultiplyPoint(
+            ijk,
+            rasSlice
         )
 
-        # Move only the slice plane
-        sliceNode.SetSliceOffset(sliceOffset)
+        offset = (
+            rasSlice[0] * normal[0]
+            + rasSlice[1] * normal[1]
+            + rasSlice[2] * normal[2]
+        )
 
+        sliceOffsets.append(offset)
 
-def observeFiducial(fiducial_name):
+    if not sliceOffsets:
+        return
+
+    # Clamp to physical range of actual slice centers
+    minOffset = min(sliceOffsets)
+    maxOffset = max(sliceOffsets)
+
+    clampedOffset = max(
+        minOffset,
+        min(requestedOffset, maxOffset)
+    )
+
+    sliceLogic.SetSliceOffset(clampedOffset)
+
+    if requestedOffset < minOffset:
+        print(
+            f"{viewer_color}: tip outside volume -> "
+            "using first acquired slice."
+        )
+
+    elif requestedOffset > maxOffset:
+        print(
+            f"{viewer_color}: tip outside volume -> "
+            "using last acquired slice."
+        )
+        
+def observeTrackingResult(
+    fiducial_name,
+    confidence_node_name
+):
     """
-    Observe the specified fiducial node and update the Green
-    and Yellow slice positions whenever its first point changes.
+    Observe the tracking-result TextNode.
+
+    CurrentTipConfidence is expected to contain:
+        timestamp; confidence text; confidence value
+
+    When a completed tracking result has High, Medium High, or
+    Medium confidence, update only the slice viewer associated
+    with the browser that generated that image.
     """
 
-    global needleTipNode
-    global needleTipObserverTag
+    global confidenceNode
+    global confidenceObserverTag
+    global pendingViewerColor
 
     # Remove previous observer if the script is run again
     if (
-        needleTipNode is not None
-        and needleTipObserverTag is not None
+        confidenceNode is not None
+        and confidenceObserverTag is not None
     ):
-        needleTipNode.RemoveObserver(
-            needleTipObserverTag
+        confidenceNode.RemoveObserver(
+            confidenceObserverTag
         )
 
-    needleTipNode = slicer.util.getNode(fiducial_name)
-
-    def onFiducialModified(caller=None, event=None):
-        updateSliceViewsFromFiducial(
-            needleTipNode,
-            viewer_colors=("Green", "Yellow")
-        )
-
-    needleTipObserverTag = needleTipNode.AddObserver(
-        needleTipNode.PointModifiedEvent,
-        onFiducialModified
+    fiducialNode = slicer.util.getNode(
+        fiducial_name
     )
 
-    # Set the slice positions immediately to the current point
-    updateSliceViewsFromFiducial(
-        needleTipNode,
-        viewer_colors=("Green", "Yellow")
+    confidenceNode = slicer.util.getNode(
+        confidence_node_name
+    )
+
+    acceptedConfidence = {
+        "High",
+        "Medium High",
+        "Medium"
+    }
+
+    def onConfidenceModified(caller=None, event=None):
+        global pendingViewerColor
+
+        # No browser update is currently waiting for a result
+        if pendingViewerColor is None:
+            return
+
+        confidenceText = confidenceNode.GetText()
+
+        if not confidenceText:
+            return
+
+        # Expected format:
+        # timestamp; confidence text; confidence value
+        parts = [
+            part.strip()
+            for part in confidenceText.split(";")
+        ]
+
+        if len(parts) < 2:
+            print(
+                "Warning: Unexpected CurrentTipConfidence format: "
+                f"{confidenceText}"
+            )
+            return
+
+        confidence = parts[1]
+        viewerColor = pendingViewerColor
+
+        print(
+            f"Tracking result for {viewerColor}: "
+            f"{confidence}"
+        )
+
+        if confidence in acceptedConfidence:
+            updateSliceViewFromFiducial(
+                fiducialNode,
+                viewerColor
+            )
+        else:
+            print(
+                f"{viewerColor} slice not updated "
+                f"(confidence: {confidence})"
+            )
+
+        # This tracking result has been consumed
+        pendingViewerColor = None
+
+    confidenceObserverTag = confidenceNode.AddObserver(
+        vtk.vtkCommand.ModifiedEvent,
+        onConfidenceModified
     )
 
     print(
-        f"Observing fiducial '{fiducial_name}' "
-        "for Green/Yellow slice updates."
+        f"Observing '{confidence_node_name}' "
+        "for tracking results."
     )
+
 
 def alternate_playback(
     browser_name_A: str,
@@ -354,6 +513,7 @@ def alternate_playback(
     viewer_color_A: str,
     viewer_color_B: str,
     fiducial_name: str,
+    confidence_node_name: str,
     delay_ms: float = 1000,
     first_frame=(0, 0),
     last_frame=(-1, -1),
@@ -371,6 +531,8 @@ def alternate_playback(
                            Valid values: 'Red', 'Green', 'Yellow'.
     :param viewer_color_B: Slice viewer associated with Browser B.
                            Valid values: 'Red', 'Green', 'Yellow'.
+    :param fiducial_name: Name of the tracked-tip fiducial node.
+    :param confidence_node_name: Name of the tracking-confidence TextNode.
     :param delay_ms: Delay in milliseconds between playback steps.
     :param first_frame: Two-element sequence containing the initial frames
                         for browsers A and B: [firstFrameA, firstFrameB].
@@ -382,6 +544,7 @@ def alternate_playback(
 
     global startPlaybackTimer
     global alternatePlaybackTimer
+    global pendingViewerColor
 
     validViewerColors = ["Red", "Green", "Yellow"]
 
@@ -419,8 +582,12 @@ def alternate_playback(
     # Initialize Slicer views for recording
     initializeViews()
 
-    # Update Green and Yellow slice positions from the fiducial
-    observeFiducial(fiducial_name)
+    # Observe completed tracking results. The corresponding slice
+    # viewer is updated only when confidence is accepted.
+    observeTrackingResult(
+        fiducial_name,
+        confidence_node_name
+    )
 
     # Get Sequence Browser nodes
     browserA = slicer.util.getNode(browser_name_A)
@@ -543,14 +710,21 @@ def alternate_playback(
 
     def resetPlayback():
         nonlocal currentBrowser
+        global pendingViewerColor
 
+        # Load Browser A's initial frame and associate any tracking
+        # result generated by that image with Browser A's viewer.
+        pendingViewerColor = viewer_color_A
         browserA.SetSelectedItemNumber(firstFrameA)
-        browserB.SetSelectedItemNumber(firstFrameB)
-
         printCurrentFrame(browser_name_A, browserA)
+
+        # Load Browser B's initial frame and associate any tracking
+        # result generated by that image with Browser B's viewer.
+        pendingViewerColor = viewer_color_B
+        browserB.SetSelectedItemNumber(firstFrameB)
         printCurrentFrame(browser_name_B, browserB)
 
-        # Browser A is the first active browser
+        # Browser A is the first active browser during playback
         currentBrowser = "A"
         setActiveSlicePlane(viewer_color_A)
 
@@ -560,24 +734,37 @@ def alternate_playback(
 
     def stepPlayback():
         nonlocal currentBrowser
+        global pendingViewerColor
 
         if currentBrowser == "A":
 
-            advanceBrowser(browserA, lastFrameA)
-            printCurrentFrame(browser_name_A, browserA)
+            if getCurrentIndex(browserA) < lastFrameA:
+                # Set this BEFORE advancing the browser because the
+                # tracking module may process the new image immediately.
+                pendingViewerColor = viewer_color_A
+                advanceBrowser(browserA, lastFrameA)
+                printCurrentFrame(browser_name_A, browserA)
 
-            # Show Browser A's associated slice in 3D
-            setActiveSlicePlane(viewer_color_A)
+                # Show Browser A's associated slice in 3D
+                setActiveSlicePlane(viewer_color_A)
+            else:
+                pendingViewerColor = None
 
             currentBrowser = "B"
 
         else:
 
-            advanceBrowser(browserB, lastFrameB)
-            printCurrentFrame(browser_name_B, browserB)
+            if getCurrentIndex(browserB) < lastFrameB:
+                # Set this BEFORE advancing the browser because the
+                # tracking module may process the new image immediately.
+                pendingViewerColor = viewer_color_B
+                advanceBrowser(browserB, lastFrameB)
+                printCurrentFrame(browser_name_B, browserB)
 
-            # Show Browser B's associated slice in 3D
-            setActiveSlicePlane(viewer_color_B)
+                # Show Browser B's associated slice in 3D
+                setActiveSlicePlane(viewer_color_B)
+            else:
+                pendingViewerColor = None
 
             currentBrowser = "A"
 
@@ -619,12 +806,13 @@ def alternate_playback(
 
 
 def stop_alternate_playback():
-    """Stop the delayed start, playback, and fiducial observer."""
+    """Stop the delayed start, playback, and confidence observer."""
 
     global startPlaybackTimer
     global alternatePlaybackTimer
-    global needleTipNode
-    global needleTipObserverTag
+    global confidenceNode
+    global confidenceObserverTag
+    global pendingViewerColor
 
     stopped = False
 
@@ -637,15 +825,17 @@ def stop_alternate_playback():
         stopped = True
 
     if (
-        needleTipNode is not None
-        and needleTipObserverTag is not None
+        confidenceNode is not None
+        and confidenceObserverTag is not None
     ):
-        needleTipNode.RemoveObserver(
-            needleTipObserverTag
+        confidenceNode.RemoveObserver(
+            confidenceObserverTag
         )
 
-        needleTipObserverTag = None
+        confidenceObserverTag = None
         stopped = True
+
+    pendingViewerColor = None
 
     if stopped:
         print("Alternate playback stopped.")
@@ -681,6 +871,11 @@ except NameError:
     fiducialName = None
 
 try:
+    confidenceNodeName
+except NameError:
+    confidenceNodeName = None
+
+try:
     delayms
 except NameError:
     delayms = None
@@ -707,12 +902,14 @@ if None in (
     viewerColorA,
     viewerColorB,
     fiducialName,
+    confidenceNodeName,
     delayms
 ):
     print(
         "Error: Missing 'browserNameA', 'browserNameB', "
         "'viewerColorA', 'viewerColorB', 'fiducialName', "
-        "or 'delayms'. Please define them before executing the script."
+        "'confidenceNodeName', or 'delayms'. "
+        "Please define them before executing the script."
     )
 else:
     alternate_playback(
@@ -721,6 +918,7 @@ else:
         viewer_color_A=viewerColorA,
         viewer_color_B=viewerColorB,
         fiducial_name=fiducialName,
+        confidence_node_name=confidenceNodeName,
         delay_ms=delayms,
         first_frame=firstFrame,
         last_frame=lastFrame,
