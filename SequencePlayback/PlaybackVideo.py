@@ -153,12 +153,15 @@ script_globals['stop_alternate_playback']()
 
 startPlaybackTimer = None
 alternatePlaybackTimer = None
+finalizePlaybackTimer = None
 
 confidenceNode = None
 confidenceObserverTag = None
 
-# Slice viewer waiting for the tracking result of the most recently
-# updated browser. It is set immediately before advancing a browser.
+# Orthogonal slice viewer waiting for the tracking result of the most
+# recently updated browser. For example, a COR image updates the SAG
+# viewer position, and a SAG image updates the COR viewer position.
+# It is set immediately before advancing a browser.
 pendingViewerColor = None
 
 
@@ -267,30 +270,11 @@ def initializeViews():
         if sliceWidget is not None:
             sliceWidget.sliceLogic().FitSliceToAll()
 
-def updateSliceViewFromFiducial(
-    fiducial_node,
-    viewer_color
-):
+def getActualSliceOffsets(viewer_color):
     """
-    Move only the specified slice plane so that it passes through
-    the fiducial point.
-
-    The requested position is clamped to the actual acquired slice
-    centers of the displayed volume, preventing the viewer from
-    moving into empty/black positions outside the 3-slice stack.
-
-    Zoom/FOV and in-plane image position are preserved.
+    Return the physical offsets of the actual acquired slices
+    in the volume currently displayed in the specified viewer.
     """
-
-    if fiducial_node is None:
-        return
-
-    if fiducial_node.GetNumberOfControlPoints() == 0:
-        return
-
-    # Fiducial position in world/RAS coordinates
-    ras = [0.0, 0.0, 0.0]
-    fiducial_node.GetNthControlPointPositionWorld(0, ras)
 
     sliceWidget = (
         slicer.app.layoutManager()
@@ -302,7 +286,7 @@ def updateSliceViewFromFiducial(
             f"Warning: Could not find "
             f"{viewer_color} slice widget."
         )
-        return
+        return []
 
     sliceLogic = sliceWidget.sliceLogic()
     sliceNode = sliceLogic.GetSliceNode()
@@ -319,12 +303,14 @@ def updateSliceViewFromFiducial(
             f"Warning: No background volume displayed "
             f"in {viewer_color}."
         )
-        return
+        return []
 
     imageData = volumeNode.GetImageData()
 
     if imageData is None:
-        return
+        return []
+
+    dimensions = imageData.GetDimensions()
 
     # Slice normal = third column of SliceToRAS
     sliceToRAS = sliceNode.GetSliceToRAS()
@@ -335,27 +321,17 @@ def updateSliceViewFromFiducial(
         sliceToRAS.GetElement(2, 2)
     ]
 
-    # Requested offset from NeedleTip
-    requestedOffset = (
-        ras[0] * normal[0]
-        + ras[1] * normal[1]
-        + ras[2] * normal[2]
-    )
-
-    # Get volume dimensions
-    dimensions = imageData.GetDimensions()
-
-    # IJK-to-RAS geometry
+    # IJK-to-RAS geometry of the displayed volume
     ijkToRAS = vtk.vtkMatrix4x4()
     volumeNode.GetIJKToRASMatrix(ijkToRAS)
 
-    # Use the center voxel in I and J.
+    # Use the center voxel in I and J
     centerI = (dimensions[0] - 1) / 2.0
     centerJ = (dimensions[1] - 1) / 2.0
 
     sliceOffsets = []
 
-    # Each K value is one acquired slice
+    # Each K value corresponds to one acquired slice
     for k in range(dimensions[2]):
 
         ijk = [
@@ -380,32 +356,125 @@ def updateSliceViewFromFiducial(
 
         sliceOffsets.append(offset)
 
+    return sliceOffsets
+
+
+def updateSliceViewFromFiducial(
+    fiducial_node,
+    viewer_color
+):
+    """
+    Move the specified viewer to the acquired slice closest
+    to the fiducial point.
+
+    The viewer is always positioned on one of the actual acquired
+    slices of the currently displayed volume, preventing black
+    intermediate or out-of-volume positions.
+
+    Zoom/FOV and in-plane image position are preserved.
+    """
+
+    if fiducial_node is None:
+        return
+
+    if fiducial_node.GetNumberOfControlPoints() == 0:
+        return
+
+    # Fiducial position in world/RAS coordinates
+    ras = [0.0, 0.0, 0.0]
+    fiducial_node.GetNthControlPointPositionWorld(
+        0,
+        ras
+    )
+
+    sliceWidget = (
+        slicer.app.layoutManager()
+        .sliceWidget(viewer_color)
+    )
+
+    if sliceWidget is None:
+        return
+
+    sliceLogic = sliceWidget.sliceLogic()
+    sliceNode = sliceLogic.GetSliceNode()
+
+    sliceOffsets = getActualSliceOffsets(
+        viewer_color
+    )
+
     if not sliceOffsets:
         return
 
-    # Clamp to physical range of actual slice centers
-    minOffset = min(sliceOffsets)
-    maxOffset = max(sliceOffsets)
+    # Slice normal = third column of SliceToRAS
+    sliceToRAS = sliceNode.GetSliceToRAS()
 
-    clampedOffset = max(
-        minOffset,
-        min(requestedOffset, maxOffset)
+    normal = [
+        sliceToRAS.GetElement(0, 2),
+        sliceToRAS.GetElement(1, 2),
+        sliceToRAS.GetElement(2, 2)
+    ]
+
+    # NeedleTip position along the slice normal
+    requestedOffset = (
+        ras[0] * normal[0]
+        + ras[1] * normal[1]
+        + ras[2] * normal[2]
     )
 
-    sliceLogic.SetSliceOffset(clampedOffset)
+    # Always select the actual acquired slice closest to NeedleTip
+    closestOffset = min(
+        sliceOffsets,
+        key=lambda offset: abs(
+            offset - requestedOffset
+        )
+    )
 
-    if requestedOffset < minOffset:
+    sliceLogic.SetSliceOffset(
+        closestOffset
+    )
+
+    if (
+        requestedOffset < min(sliceOffsets)
+        or requestedOffset > max(sliceOffsets)
+    ):
         print(
             f"{viewer_color}: tip outside volume -> "
-            "using first acquired slice."
+            "using nearest acquired slice."
         )
 
-    elif requestedOffset > maxOffset:
-        print(
-            f"{viewer_color}: tip outside volume -> "
-            "using last acquired slice."
-        )
-        
+def setViewerToMiddleSlice(viewer_color):
+    """
+    Position the viewer on the middle acquired slice of the
+    currently displayed volume.
+
+    This is used when a new volume is loaded and there is no
+    valid tracking result to determine another slice position.
+    """
+
+    sliceWidget = (
+        slicer.app.layoutManager()
+        .sliceWidget(viewer_color)
+    )
+
+    if sliceWidget is None:
+        return
+
+    sliceLogic = sliceWidget.sliceLogic()
+
+    sliceOffsets = getActualSliceOffsets(
+        viewer_color
+    )
+
+    if not sliceOffsets:
+        return
+
+    middleIndex = len(sliceOffsets) // 2
+    middleOffset = sliceOffsets[middleIndex]
+
+    sliceLogic.SetSliceOffset(
+        middleOffset
+    )
+
 def observeTrackingResult(
     fiducial_name,
     confidence_node_name
@@ -488,8 +557,14 @@ def observeTrackingResult(
                 viewerColor
             )
         else:
+            # Do not use the previous/stale NeedleTip position.
+            # Keep this viewer at the center in case of no tip detection.
+            setViewerToMiddleSlice(
+                viewerColor
+            )
+
             print(
-                f"{viewerColor} slice not updated "
+                f"{viewerColor} tip not updated "
                 f"(confidence: {confidence})"
             )
 
@@ -544,6 +619,7 @@ def alternate_playback(
 
     global startPlaybackTimer
     global alternatePlaybackTimer
+    global finalizePlaybackTimer
     global pendingViewerColor
 
     validViewerColors = ["Red", "Green", "Yellow"]
@@ -622,6 +698,23 @@ def alternate_playback(
             f"{activeViewerColor} ON"
         )
 
+    def showBothSlicePlanes():
+        """
+        Show both Browser A and Browser B slice planes in the 3D view.
+        All other standard slice planes are hidden.
+        """
+
+        for sliceNode in sliceNodes.values():
+            sliceNode.SetSliceVisible(False)
+
+        sliceNodes[viewer_color_A].SetSliceVisible(True)
+        sliceNodes[viewer_color_B].SetSliceVisible(True)
+
+        print(
+            f"3D slice visibility: "
+            f"{viewer_color_A} + {viewer_color_B} ON"
+        )
+
     def getCurrentIndex(browser):
         return browser.GetSelectedItemNumber()
 
@@ -694,6 +787,9 @@ def alternate_playback(
     if alternatePlaybackTimer and alternatePlaybackTimer.isActive():
         alternatePlaybackTimer.stop()
 
+    if finalizePlaybackTimer and finalizePlaybackTimer.isActive():
+        finalizePlaybackTimer.stop()
+
     # Internal playback timers
     startPlaybackTimer = qt.QTimer()
     startPlaybackTimer.setSingleShot(True)
@@ -701,6 +797,10 @@ def alternate_playback(
 
     alternatePlaybackTimer = qt.QTimer()
     alternatePlaybackTimer.setInterval(int(delay_ms))
+
+    finalizePlaybackTimer = qt.QTimer()
+    finalizePlaybackTimer.setSingleShot(True)
+    finalizePlaybackTimer.setInterval(int(delay_ms))
 
     def printCurrentFrame(browser_name, browser):
         print(
@@ -712,25 +812,36 @@ def alternate_playback(
         nonlocal currentBrowser
         global pendingViewerColor
 
-        # Load Browser A's initial frame and associate any tracking
-        # result generated by that image with Browser A's viewer.
-        pendingViewerColor = viewer_color_A
+        # Initial frame loading is only for playback setup.
+        # Do not associate these frame changes with a pending tracking
+        # result, because tracking may not be running yet.
+        pendingViewerColor = None
+
         browserA.SetSelectedItemNumber(firstFrameA)
         printCurrentFrame(browser_name_A, browserA)
 
-        # Load Browser B's initial frame and associate any tracking
-        # result generated by that image with Browser B's viewer.
-        pendingViewerColor = viewer_color_B
         browserB.SetSelectedItemNumber(firstFrameB)
         printCurrentFrame(browser_name_B, browserB)
 
+        # Show both initialized slice planes in 3D.
+        # Once alternating playback begins, only the currently
+        # updated browser's slice plane will be shown.
+        showBothSlicePlanes()
+
         # Browser A is the first active browser during playback
         currentBrowser = "A"
-        setActiveSlicePlane(viewer_color_A)
 
     def startPlayback():
         print("Alternating playback started.")
         alternatePlaybackTimer.start()
+
+    def finalizePlayback():
+        """
+        After one normal playback delay following the final frame,
+        show both slice planes again to finish the recording.
+        """
+        showBothSlicePlanes()
+        print("Playback finished.")
 
     def stepPlayback():
         nonlocal currentBrowser
@@ -741,8 +852,19 @@ def alternate_playback(
             if getCurrentIndex(browserA) < lastFrameA:
                 # Set this BEFORE advancing the browser because the
                 # tracking module may process the new image immediately.
-                pendingViewerColor = viewer_color_A
+                #
+                # A new image updates the tracked coordinate that belongs
+                # to the orthogonal slice plane, so Browser A's tracking
+                # result moves Browser B's viewer.
+                pendingViewerColor = viewer_color_B
                 advanceBrowser(browserA, lastFrameA)
+
+                # Keep Browser A's own viewer on a valid acquired slice
+                # of the newly loaded volume.
+                setViewerToMiddleSlice(
+                    viewer_color_A
+                )
+
                 printCurrentFrame(browser_name_A, browserA)
 
                 # Show Browser A's associated slice in 3D
@@ -757,8 +879,19 @@ def alternate_playback(
             if getCurrentIndex(browserB) < lastFrameB:
                 # Set this BEFORE advancing the browser because the
                 # tracking module may process the new image immediately.
-                pendingViewerColor = viewer_color_B
+                #
+                # A new image updates the tracked coordinate that belongs
+                # to the orthogonal slice plane, so Browser B's tracking
+                # result moves Browser A's viewer.
+                pendingViewerColor = viewer_color_A
                 advanceBrowser(browserB, lastFrameB)
+
+                # Keep Browser B's own viewer on a valid acquired slice
+                # of the newly loaded volume.
+                setViewerToMiddleSlice(
+                    viewer_color_B
+                )
+
                 printCurrentFrame(browser_name_B, browserB)
 
                 # Show Browser B's associated slice in 3D
@@ -781,8 +914,16 @@ def alternate_playback(
                 print("Restart...")
                 resetPlayback()
             else:
-                print("Playback finished.")
                 alternatePlaybackTimer.stop()
+
+                print(
+                    f"Last frame reached. "
+                    f"Showing both planes in {int(delay_ms)} ms..."
+                )
+
+                # Preserve one normal playback pause after the final
+                # sequence update before restoring the bi-plane view.
+                finalizePlaybackTimer.start()
 
     currentBrowser = "A"
 
@@ -791,6 +932,7 @@ def alternate_playback(
 
     alternatePlaybackTimer.timeout.connect(stepPlayback)
     startPlaybackTimer.timeout.connect(startPlayback)
+    finalizePlaybackTimer.timeout.connect(finalizePlayback)
 
     print(f"Browser A: {browser_name_A}")
     print(f"  Viewer: {viewer_color_A}")
@@ -806,10 +948,11 @@ def alternate_playback(
 
 
 def stop_alternate_playback():
-    """Stop the delayed start, playback, and confidence observer."""
+    """Stop delayed start, playback, finalization, and confidence observer."""
 
     global startPlaybackTimer
     global alternatePlaybackTimer
+    global finalizePlaybackTimer
     global confidenceNode
     global confidenceObserverTag
     global pendingViewerColor
@@ -822,6 +965,10 @@ def stop_alternate_playback():
 
     if alternatePlaybackTimer and alternatePlaybackTimer.isActive():
         alternatePlaybackTimer.stop()
+        stopped = True
+
+    if finalizePlaybackTimer and finalizePlaybackTimer.isActive():
+        finalizePlaybackTimer.stop()
         stopped = True
 
     if (
