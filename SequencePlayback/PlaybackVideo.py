@@ -164,6 +164,26 @@ confidenceObserverTag = None
 # It is set immediately before advancing a browser.
 pendingViewerColor = None
 
+# Source plane that generated the pending tracking result.
+pendingSourcePlane = None
+
+# Detection results for the current COR-SAG pair.
+lastCorSuccess = None
+lastSagSuccess = None
+
+# Number of completed COR-SAG pairs during playback.
+cycleCount = 0
+
+# Playback initialization state.
+# The script first loads the initial COR/SAG pair, hides NeedleTip,
+# and waits for the two confidence updates generated when tracking starts.
+initializingPlayback = True
+initializationResultCount = 0
+
+# NeedleTip remains hidden after initialization and is shown only after
+# the first successful detection from the actual playback.
+waitingForFirstPlaybackDetection = False
+
 
 def setupCustomLayout():
     """
@@ -269,6 +289,159 @@ def initializeViews():
 
         if sliceWidget is not None:
             sliceWidget.sliceLogic().FitSliceToAll()
+
+def set3DViewText(text):
+    """
+    Show fixed text in the upper-right corner of the 3D view.
+    Pass an empty string to clear the annotation.
+
+    This uses the same minimal cornerAnnotation configuration
+    verified directly in the Slicer Python Interactor.
+    """
+
+    view = (
+        slicer.app.layoutManager()
+        .threeDWidget(0)
+        .threeDView()
+    )
+
+    annotation = view.cornerAnnotation()
+
+    annotation.SetVisibility(True)
+
+    annotation.SetText(
+        vtk.vtkCornerAnnotation.UpperRight,
+        text
+    )
+
+    textProperty = annotation.GetTextProperty()
+    textProperty.SetColor(1.0, 1.0, 1.0)
+    textProperty.SetBold(True)
+
+    annotation.Modified()
+    slicer.util.forceRenderAllViews()
+
+    if text:
+        print(
+            f"3D annotation: {text}"
+        )
+    else:
+        print("3D annotation cleared.")
+
+
+
+def configureNeedleTipDisplay(fiducial_name):
+    """
+    Enhance NeedleTip visibility for video recording.
+
+    3D display:
+    - Visible in 3D
+    - Occluded visibility enabled
+    - Full standard opacity
+    - Full occluded opacity
+
+    2D display:
+    - Visible in 2D
+    - Projection visibility enabled
+    - Projection uses markup/fiducial color
+    - Projection outlined behind slice plane
+    - Full projection opacity
+    """
+
+    fiducialNode = slicer.util.getNode(
+        fiducial_name
+    )
+
+    displayNode = fiducialNode.GetDisplayNode()
+
+    if displayNode is None:
+        fiducialNode.CreateDefaultDisplayNodes()
+        displayNode = fiducialNode.GetDisplayNode()
+
+    if displayNode is None:
+        print(
+            f"Warning: Could not create display node for "
+            f"'{fiducial_name}'."
+        )
+        return
+
+    # General / 3D visibility
+    displayNode.SetVisibility(True)
+    displayNode.SetVisibility3D(True)
+    displayNode.SetOpacity(1.0)
+    displayNode.SetUseGlyphScale(True)
+    displayNode.SetGlyphScale(1.0)
+    displayNode.SetTextScale(6.0)
+
+    # 3D occluded visibility
+    displayNode.SetOccludedVisibility(True)
+    displayNode.SetOccludedOpacity(1.0)
+
+    # 2D visibility and projection
+    displayNode.SetVisibility2D(True)
+    displayNode.SetSliceProjection(True)
+    displayNode.SetSliceProjectionUseFiducialColor(True)
+    displayNode.SetSliceProjectionOutlinedBehindSlicePlane(False)
+    displayNode.SetSliceProjectionOpacity(1.0)
+
+    print(
+        f"Enhanced 2D/3D display visibility for "
+        f"'{fiducial_name}'."
+    )
+
+
+def setNeedleTipVisibility(
+    fiducial_name,
+    visible
+):
+    """
+    Temporarily hide/show NeedleTip during initialization/playback.
+
+    Initialization:
+    - General display opacity = 0
+    - 2D projection visibility = off
+
+    Playback:
+    - General display opacity = 1
+    - 2D projection visibility = on
+
+    Other 2D/3D display settings remain unchanged.
+    """
+
+    fiducialNode = slicer.util.getNode(
+        fiducial_name
+    )
+
+    displayNode = fiducialNode.GetDisplayNode()
+
+    if displayNode is None:
+        fiducialNode.CreateDefaultDisplayNodes()
+        displayNode = fiducialNode.GetDisplayNode()
+
+    if displayNode is None:
+        return
+
+    if visible:
+        displayNode.SetOpacity(1.0)
+        displayNode.SetSliceProjection(True)
+
+        print(
+            "NeedleTip restored: opacity = 1.0, "
+            "2D projection ON."
+        )
+    else:
+        displayNode.SetOpacity(0.0)
+        displayNode.SetSliceProjection(False)
+
+        print(
+            "NeedleTip hidden for initialization: "
+            "opacity = 0.0, 2D projection OFF."
+        )
+
+    displayNode.Modified()
+    slicer.util.forceRenderAllViews()
+
+
 
 def getActualSliceOffsets(viewer_color):
     """
@@ -477,22 +650,34 @@ def setViewerToMiddleSlice(viewer_color):
 
 def observeTrackingResult(
     fiducial_name,
-    confidence_node_name
+    confidence_node_name,
+    initialization_complete_callback=None
 ):
     """
     Observe the tracking-result TextNode.
 
-    CurrentTipConfidence is expected to contain:
-        timestamp; confidence text; confidence value
+    Initialization phase:
+    - The initial COR and SAG frames are already loaded.
+    - NeedleTip is hidden.
+    - The first two confidence updates generated when tracking starts
+      are treated only as initialization and are not counted.
 
-    When a completed tracking result has High, Medium High, or
-    Medium confidence, update only the slice viewer associated
-    with the browser that generated that image.
+    Playback phase:
+    - The same first COR and SAG frames are replayed.
+    - The first successful playback detection reveals NeedleTip.
+    - A completed COR-SAG pair is counted as one cycle.
     """
 
     global confidenceNode
     global confidenceObserverTag
     global pendingViewerColor
+    global pendingSourcePlane
+    global lastCorSuccess
+    global lastSagSuccess
+    global cycleCount
+    global initializingPlayback
+    global initializationResultCount
+    global waitingForFirstPlaybackDetection
 
     # Remove previous observer if the script is run again
     if (
@@ -519,10 +704,13 @@ def observeTrackingResult(
 
     def onConfidenceModified(caller=None, event=None):
         global pendingViewerColor
-
-        # No browser update is currently waiting for a result
-        if pendingViewerColor is None:
-            return
+        global pendingSourcePlane
+        global lastCorSuccess
+        global lastSagSuccess
+        global cycleCount
+        global initializingPlayback
+        global initializationResultCount
+        global waitingForFirstPlaybackDetection
 
         confidenceText = confidenceNode.GetText()
 
@@ -544,32 +732,142 @@ def observeTrackingResult(
             return
 
         confidence = parts[1]
+
+        # -------------------------------------------------------------
+        # Initialization phase
+        # -------------------------------------------------------------
+        if initializingPlayback:
+            initializationResultCount += 1
+
+            print(
+                "Tracking initialization result "
+                f"{initializationResultCount}/2: "
+                f"{confidence}"
+            )
+
+            # The tracking module processes the two already-present
+            # orthogonal planes when tracking is started. These two
+            # results initialize tracking but are not playback cycles.
+            if initializationResultCount >= 2:
+                initializingPlayback = False
+                initializationResultCount = 0
+
+                pendingViewerColor = None
+                pendingSourcePlane = None
+                lastCorSuccess = None
+                lastSagSuccess = None
+                cycleCount = 0
+
+                # Keep the marker hidden until the first successful
+                # detection from the actual playback is returned.
+                waitingForFirstPlaybackDetection = True
+
+                set3DViewText("")
+
+                print(
+                    "Tracking initialization complete. "
+                    "Starting playback from the initial frames."
+                )
+
+                if initialization_complete_callback is not None:
+                    # Defer playback start until the tracking callback
+                    # has fully returned.
+                    qt.QTimer.singleShot(
+                        0,
+                        initialization_complete_callback
+                    )
+
+            return
+
+        # -------------------------------------------------------------
+        # Playback phase
+        # -------------------------------------------------------------
+        if (
+            pendingViewerColor is None
+            or pendingSourcePlane is None
+        ):
+            return
+
         viewerColor = pendingViewerColor
+        sourcePlane = pendingSourcePlane
+        success = confidence in acceptedConfidence
 
         print(
-            f"Tracking result for {viewerColor}: "
+            f"Tracking result for {sourcePlane}: "
             f"{confidence}"
         )
 
-        if confidence in acceptedConfidence:
+        if success:
             updateSliceViewFromFiducial(
                 fiducialNode,
                 viewerColor
             )
+
         else:
-            # Do not use the previous/stale NeedleTip position.
-            # Keep this viewer at the center in case of no tip detection.
+            # Do not use a previous/stale NeedleTip position.
             setViewerToMiddleSlice(
                 viewerColor
             )
 
             print(
-                f"{viewerColor} tip not updated "
+                f"{sourcePlane} tip not updated "
                 f"(confidence: {confidence})"
             )
 
-        # This tracking result has been consumed
+        # The initialization tip remained invisible. Once the first
+        # real playback tracking result has returned, restore NeedleTip
+        # display. If that result failed, the marker remains at the last
+        # valid tracked position until a later successful result updates it.
+        if waitingForFirstPlaybackDetection:
+            print(
+                "First playback result received. "
+                "NeedleTip will be restored after the proxy update returns."
+            )
+
+        # Store this scan result for the current COR-SAG pair.
+        if sourcePlane == "COR":
+            lastCorSuccess = success
+
+        elif sourcePlane == "SAG":
+            lastSagSuccess = success
+
+        # Once both views have produced a result, one cycle is complete.
+        if (
+            lastCorSuccess is not None
+            and lastSagSuccess is not None
+        ):
+            cycleCount += 1
+
+            if lastCorSuccess and lastSagSuccess:
+                set3DViewText(
+                    f"Cycle {cycleCount}"
+                )
+
+            elif lastCorSuccess and not lastSagSuccess:
+                set3DViewText(
+                    f"Cycle {cycleCount} | "
+                    "COR: success | SAG: fail"
+                )
+
+            elif not lastCorSuccess and lastSagSuccess:
+                set3DViewText(
+                    f"Cycle {cycleCount} | "
+                    "COR: fail | SAG: success"
+                )
+
+            else:
+                set3DViewText(
+                    f"Cycle {cycleCount} | "
+                    "COR: fail | SAG: fail"
+                )
+
+            # Start collecting the next COR-SAG pair.
+            lastCorSuccess = None
+            lastSagSuccess = None
+
+        # This tracking result has been consumed.
         pendingViewerColor = None
+        pendingSourcePlane = None
 
     confidenceObserverTag = confidenceNode.AddObserver(
         vtk.vtkCommand.ModifiedEvent,
@@ -621,8 +919,33 @@ def alternate_playback(
     global alternatePlaybackTimer
     global finalizePlaybackTimer
     global pendingViewerColor
+    global pendingSourcePlane
+    global lastCorSuccess
+    global lastSagSuccess
+    global cycleCount
+    global initializingPlayback
+    global initializationResultCount
+    global waitingForFirstPlaybackDetection
 
     validViewerColors = ["Red", "Green", "Yellow"]
+
+    # In the custom recording layout:
+    # Green = Coronal, Yellow = Sagittal.
+    viewerToPlane = {
+        "Green": "COR",
+        "Yellow": "SAG",
+        "Red": "AX"
+    }
+
+    sourcePlaneA = viewerToPlane.get(
+        viewer_color_A,
+        viewer_color_A
+    )
+
+    sourcePlaneB = viewerToPlane.get(
+        viewer_color_B,
+        viewer_color_B
+    )
 
     if viewer_color_A not in validViewerColors:
         raise ValueError(
@@ -658,11 +981,9 @@ def alternate_playback(
     # Initialize Slicer views for recording
     initializeViews()
 
-    # Observe completed tracking results. The corresponding slice
-    # viewer is updated only when confidence is accepted.
-    observeTrackingResult(
-        fiducial_name,
-        confidence_node_name
+    # Enhance NeedleTip visibility in both 2D and 3D views
+    configureNeedleTipDisplay(
+        fiducial_name
     )
 
     # Get Sequence Browser nodes
@@ -791,9 +1112,7 @@ def alternate_playback(
         finalizePlaybackTimer.stop()
 
     # Internal playback timers
-    startPlaybackTimer = qt.QTimer()
-    startPlaybackTimer.setSingleShot(True)
-    startPlaybackTimer.setInterval(5000)
+    startPlaybackTimer = None
 
     alternatePlaybackTimer = qt.QTimer()
     alternatePlaybackTimer.setInterval(int(delay_ms))
@@ -811,16 +1130,41 @@ def alternate_playback(
     def resetPlayback():
         nonlocal currentBrowser
         global pendingViewerColor
+        global pendingSourcePlane
+        global lastCorSuccess
+        global lastSagSuccess
+        global cycleCount
+        global initializingPlayback
+        global initializationResultCount
+        global waitingForFirstPlaybackDetection
 
         # Initial frame loading is only for playback setup.
         # Do not associate these frame changes with a pending tracking
         # result, because tracking may not be running yet.
         pendingViewerColor = None
+        pendingSourcePlane = None
+        lastCorSuccess = None
+        lastSagSuccess = None
+        cycleCount = 0
+        initializingPlayback = True
+        initializationResultCount = 0
+        waitingForFirstPlaybackDetection = False
+
+        set3DViewText("")
+
+        # Hide the initialization tip. It will remain hidden until
+        # the first successful detection from the actual playback.
+        setNeedleTipVisibility(
+            fiducial_name,
+            False
+        )
 
         browserA.SetSelectedItemNumber(firstFrameA)
+        setViewerToMiddleSlice(viewer_color_A)
         printCurrentFrame(browser_name_A, browserA)
 
         browserB.SetSelectedItemNumber(firstFrameB)
+        setViewerToMiddleSlice(viewer_color_B)
         printCurrentFrame(browser_name_B, browserB)
 
         # Show both initialized slice planes in 3D.
@@ -831,8 +1175,19 @@ def alternate_playback(
         # Browser A is the first active browser during playback
         currentBrowser = "A"
 
+    firstPlaybackPass = True
+
     def startPlayback():
-        print("Alternating playback started.")
+        nonlocal currentBrowser
+        nonlocal firstPlaybackPass
+
+        # Replay the exact same first A/B frames that were used for
+        # initialization. Cycle counting starts only now.
+        currentBrowser = "A"
+        firstPlaybackPass = True
+
+        print("Alternating playback started from initial frames.")
+
         alternatePlaybackTimer.start()
 
     def finalizePlayback():
@@ -840,26 +1195,67 @@ def alternate_playback(
         After one normal playback delay following the final frame,
         show both slice planes again to finish the recording.
         """
+        set3DViewText("")
         showBothSlicePlanes()
         print("Playback finished.")
 
     def stepPlayback():
         nonlocal currentBrowser
+        nonlocal firstPlaybackPass
         global pendingViewerColor
+        global pendingSourcePlane
+        global waitingForFirstPlaybackDetection
 
         if currentBrowser == "A":
 
-            if getCurrentIndex(browserA) < lastFrameA:
-                # Set this BEFORE advancing the browser because the
-                # tracking module may process the new image immediately.
+            if (
+                firstPlaybackPass
+                or getCurrentIndex(browserA) < lastFrameA
+            ):
+                # Set this BEFORE refreshing/advancing the browser because
+                # the tracking module may process the image immediately.
                 #
-                # A new image updates the tracked coordinate that belongs
-                # to the orthogonal slice plane, so Browser A's tracking
-                # result moves Browser B's viewer.
+                # Browser A's result moves Browser B's orthogonal viewer.
                 pendingViewerColor = viewer_color_B
-                advanceBrowser(browserA, lastFrameA)
+                pendingSourcePlane = sourcePlaneA
 
-                # Keep Browser A's own viewer on a valid acquired slice
+                if firstPlaybackPass:
+                    # Replay the already-selected initialization frame
+                    # without changing to another sequence item.
+                    slicer.modules.sequences.logic().UpdateProxyNodesFromSequences(
+                        browserA
+                    )
+
+                    # The tracking callback has fully returned by this point.
+                    # Restore NeedleTip opacity here, outside the tracking
+                    # callback, so it cannot be overwritten afterward.
+                    fiducialNode = slicer.util.getNode(
+                        fiducial_name
+                    )
+                    displayNode = fiducialNode.GetDisplayNode()
+
+                    if displayNode is not None:
+                        displayNode.SetOpacity(1.0)
+                        displayNode.SetSliceProjection(True)
+                        displayNode.Modified()
+                        slicer.util.forceRenderAllViews()
+
+                        print(
+                            "NeedleTip restored after first playback "
+                            "tracking result: "
+                            f"opacity={displayNode.GetOpacity():.1f}, "
+                            f"projection={int(displayNode.GetSliceProjection())}"
+                        )
+
+                    waitingForFirstPlaybackDetection = False
+
+                else:
+                    advanceBrowser(
+                        browserA,
+                        lastFrameA
+                    )
+
+                # Keep Browser A's own viewer on the middle acquired slice
                 # of the newly loaded volume.
                 setViewerToMiddleSlice(
                     viewer_color_A
@@ -871,22 +1267,39 @@ def alternate_playback(
                 setActiveSlicePlane(viewer_color_A)
             else:
                 pendingViewerColor = None
+                pendingSourcePlane = None
 
             currentBrowser = "B"
 
         else:
 
-            if getCurrentIndex(browserB) < lastFrameB:
-                # Set this BEFORE advancing the browser because the
-                # tracking module may process the new image immediately.
+            if (
+                firstPlaybackPass
+                or getCurrentIndex(browserB) < lastFrameB
+            ):
+                # Set this BEFORE refreshing/advancing the browser because
+                # the tracking module may process the image immediately.
                 #
-                # A new image updates the tracked coordinate that belongs
-                # to the orthogonal slice plane, so Browser B's tracking
-                # result moves Browser A's viewer.
+                # Browser B's result moves Browser A's orthogonal viewer.
                 pendingViewerColor = viewer_color_A
-                advanceBrowser(browserB, lastFrameB)
+                pendingSourcePlane = sourcePlaneB
 
-                # Keep Browser B's own viewer on a valid acquired slice
+                if firstPlaybackPass:
+                    # Replay the already-selected initialization frame
+                    # without changing to another sequence item.
+                    slicer.modules.sequences.logic().UpdateProxyNodesFromSequences(
+                        browserB
+                    )
+
+                    # The initial A/B pair has now been replayed.
+                    firstPlaybackPass = False
+                else:
+                    advanceBrowser(
+                        browserB,
+                        lastFrameB
+                    )
+
+                # Keep Browser B's own viewer on the middle acquired slice
                 # of the newly loaded volume.
                 setViewerToMiddleSlice(
                     viewer_color_B
@@ -898,6 +1311,7 @@ def alternate_playback(
                 setActiveSlicePlane(viewer_color_B)
             else:
                 pendingViewerColor = None
+                pendingSourcePlane = None
 
             currentBrowser = "A"
 
@@ -931,8 +1345,15 @@ def alternate_playback(
     resetPlayback()
 
     alternatePlaybackTimer.timeout.connect(stepPlayback)
-    startPlaybackTimer.timeout.connect(startPlayback)
     finalizePlaybackTimer.timeout.connect(finalizePlayback)
+
+    # Observe tracking only after the initialization frames are loaded.
+    # The first two confidence updates are treated as initialization.
+    observeTrackingResult(
+        fiducial_name,
+        confidence_node_name,
+        initialization_complete_callback=startPlayback
+    )
 
     print(f"Browser A: {browser_name_A}")
     print(f"  Viewer: {viewer_color_A}")
@@ -942,9 +1363,10 @@ def alternate_playback(
     print(f"  Viewer: {viewer_color_B}")
     print(f"  Range: {firstFrameB} to {lastFrameB}")
 
-    print("Starting playback in 5 seconds...")
-
-    startPlaybackTimer.start()
+    print(
+        "Waiting for tracking initialization... "
+        "Start tracking when ready."
+    )
 
 
 def stop_alternate_playback():
@@ -956,6 +1378,13 @@ def stop_alternate_playback():
     global confidenceNode
     global confidenceObserverTag
     global pendingViewerColor
+    global pendingSourcePlane
+    global lastCorSuccess
+    global lastSagSuccess
+    global cycleCount
+    global initializingPlayback
+    global initializationResultCount
+    global waitingForFirstPlaybackDetection
 
     stopped = False
 
@@ -983,6 +1412,14 @@ def stop_alternate_playback():
         stopped = True
 
     pendingViewerColor = None
+    pendingSourcePlane = None
+    lastCorSuccess = None
+    lastSagSuccess = None
+    cycleCount = 0
+    initializingPlayback = True
+    initializationResultCount = 0
+    waitingForFirstPlaybackDetection = False
+    set3DViewText("")
 
     if stopped:
         print("Alternate playback stopped.")
