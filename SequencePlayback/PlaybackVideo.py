@@ -3,6 +3,11 @@ import vtk
 import time
 from __main__ import qt
 
+# STABLE VERSION
+# Sequence playback with tracking initialization, cycle annotation,
+# orthogonal viewer updates, valid 3-slice positioning, and enhanced
+# NeedleTip display for video recording.
+
 """
 
 # Example execution snippet:
@@ -29,6 +34,14 @@ script_globals = {
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '35001 AX VIBE',
+    'cameraView': {
+        'position': [-230.60944034893606, 225.10991333832752, -394.64102504795454],
+        'focalPoint': [28.099272402258137, -4.3539065458298865, -66.86069833791028],
+        'viewUp': [0.24567694746027066, 0.8744678129889569, 0.41826891055027515],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [32, 32],
     'lastFrame': [40, 39],
@@ -44,6 +57,14 @@ script_globals = {
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '49001 AX VIBE',
+    'cameraView': {
+        'position': [436.0848390013352, -222.63884639291925, -491.4983016707708],
+        'focalPoint': [-12.610944922609619, 10.220544510948832, -137.315819487491],
+        'viewUp': [-0.21930106723705964, -0.9193622818737608, 0.32661910014045165],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [22, 22],
     'lastFrame': [29, 29],
@@ -59,6 +80,14 @@ script_globals = {
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '59001 AX VIBE',
+    'cameraView': {
+        'position': [-402.82752287043024, 289.54169056680587, -425.47225797608155],
+        'focalPoint': [-4.74442, 18.377, -123.711],
+        'viewUp': [0.31361209975563425, 0.8738502779595838, 0.3715281181779118],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [10, 10],
     'lastFrame': [29, 29],
@@ -74,6 +103,14 @@ script_globals = {
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '62001 AX VIBE',
+    'cameraView': {
+        'position': [-429.81060995061443, 281.3693793982463, -382.10367224900426],
+        'focalPoint': [-46.008222445720946, 43.213542592523424, -115.27296593682728],
+        'viewUp': [0.3559634719158801, 0.8906431581721338, 0.2829218469167062],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [33, 34],
     'lastFrame': [47, 48],
@@ -89,6 +126,14 @@ script_globals = {
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '73001 AX VIBE',
+    'cameraView': {
+        'position': [-487.4447986769182, 268.6196606513246, -439.44686310071586],
+        'focalPoint': [-34.187921271223246, 23.09824059673931, -134.85742331594236],
+        'viewUp': [0.3193125243032016, 0.911424533755633, 0.25950882661567515],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [21, 21],
     'lastFrame': [34, 33],
@@ -104,6 +149,14 @@ script_globals = {
     'viewerColorB': 'Green',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '79001 AX VIBE',
+    'cameraView': {
+        'position': [-547.9152861191684, 431.8786509216361, -634.8376391595991],
+        'focalPoint': [17.978120659085437, -1.8509075239135786, -93.29754064851899],
+        'viewUp': [0.3177940544606002, 0.8739005893199872, 0.3678378704479356],
+        'parallelScale': 1.0,
+        'viewAngle': 14.999999999999975
+    },
     'delayms': 1000,
     'firstFrame': [14, 14],
     'lastFrame': [26, 26],
@@ -119,6 +172,14 @@ script_globals = {
     'viewerColorB': 'Yellow',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '84001 AX VIBE',
+    'cameraView': {
+        'position': [-477.4068851182397, 265.56381706050433, -438.14406862967724],
+        'focalPoint': [-31.352668996696778, 23.943954190840564, -138.39483022928505],
+        'viewUp': [0.31931252430320156, 0.9114245337556328, 0.2595088266156751],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [0, 1],
     'lastFrame': [22, 23],
@@ -134,6 +195,14 @@ script_globals = {
     'viewerColorB': 'Yellow',
     'fiducialName': 'NeedleTip',
     'confidenceNodeName': 'CurrentTipConfidence',
+    'confirmationVolumeName': '35001 AX VIBE',
+    'cameraView': {
+        'position': [-297.70153217124215, 252.14283432652104, -429.931000556036],
+        'focalPoint': [13.701035978287955, -9.385995054754009, -30.49540811568034],
+        'viewUp': [0.2374160878623685, 0.8871353283088852, 0.39575814646121255],
+        'parallelScale': 1.0,
+        'viewAngle': 30.0
+    },
     'delayms': 1000,
     'firstFrame': [55, 55],
     'lastFrame': [70, 69],
@@ -154,6 +223,8 @@ script_globals['stop_alternate_playback']()
 startPlaybackTimer = None
 alternatePlaybackTimer = None
 finalizePlaybackTimer = None
+confirmationPlaybackTimer = None
+confirmationZoomTimer = None
 
 confidenceNode = None
 confidenceObserverTag = None
@@ -253,6 +324,10 @@ def customize3DView():
         if sliceNode is not None:
             sliceNode.SetSliceEdgeVisibility3D(False)
 
+            # Start with all slice planes hidden in 3D.
+            # Playback explicitly shows Green/Yellow as needed.
+            sliceNode.SetSliceVisible(False)
+
     # Get 3D view node
     viewNode = (
         slicer.app.layoutManager()
@@ -270,7 +345,67 @@ def customize3DView():
     viewNode.SetAxisLabelsVisible(False)
 
 
-def initializeViews():
+
+def setCameraView(camera_view):
+    """
+    Restore a saved 3D camera view.
+
+    camera_view is expected to contain:
+    - position
+    - focalPoint
+    - viewUp
+    - parallelScale
+    - viewAngle
+    """
+
+    if not camera_view:
+        print("No saved 3D camera view specified.")
+        return
+
+    viewNode = (
+        slicer.app.layoutManager()
+        .threeDWidget(0)
+        .mrmlViewNode()
+    )
+
+    cameraNode = (
+        slicer.modules.cameras.logic()
+        .GetViewActiveCameraNode(viewNode)
+    )
+
+    if cameraNode is None:
+        print("Warning: Could not find active 3D camera node.")
+        return
+
+    camera = cameraNode.GetCamera()
+
+    camera.SetPosition(
+        camera_view['position']
+    )
+
+    camera.SetFocalPoint(
+        camera_view['focalPoint']
+    )
+
+    camera.SetViewUp(
+        camera_view['viewUp']
+    )
+
+    camera.SetParallelScale(
+        camera_view['parallelScale']
+    )
+
+    camera.SetViewAngle(
+        camera_view['viewAngle']
+    )
+
+    cameraNode.Modified()
+    slicer.util.forceRenderAllViews()
+
+    print("3D camera view restored.")
+
+
+def initializeViews(camera_view=None):
     """
     Initialize all Slicer views for video recording.
     """
@@ -289,6 +424,13 @@ def initializeViews():
 
         if sliceWidget is not None:
             sliceWidget.sliceLogic().FitSliceToAll()
+
+    # Restore the trajectory-specific 3D camera framing once
+    # during view initialization.
+    setCameraView(
+        camera_view
+    )
+
 
 def set3DViewText(text):
     """
@@ -370,7 +512,9 @@ def configureNeedleTipDisplay(fiducial_name):
     displayNode.SetVisibility3D(True)
     displayNode.SetOpacity(1.0)
     displayNode.SetUseGlyphScale(True)
-    displayNode.SetGlyphScale(1.0)
+    displayNode.SetGlyphScale(2.0)
+
+    # Markup text/label size
     displayNode.SetTextScale(6.0)
 
     # 3D occluded visibility
@@ -887,6 +1031,8 @@ def alternate_playback(
     viewer_color_B: str,
     fiducial_name: str,
     confidence_node_name: str,
+    confirmation_volume_name: str,
+    camera_view=None,
     delay_ms: float = 1000,
     first_frame=(0, 0),
     last_frame=(-1, -1),
@@ -906,6 +1052,9 @@ def alternate_playback(
                            Valid values: 'Red', 'Green', 'Yellow'.
     :param fiducial_name: Name of the tracked-tip fiducial node.
     :param confidence_node_name: Name of the tracking-confidence TextNode.
+    :param confirmation_volume_name: Name of the post-insertion
+                                     confirmation VIBE volume.
+    :param camera_view: Saved 3D camera framing dictionary.
     :param delay_ms: Delay in milliseconds between playback steps.
     :param first_frame: Two-element sequence containing the initial frames
                         for browsers A and B: [firstFrameA, firstFrameB].
@@ -918,6 +1067,8 @@ def alternate_playback(
     global startPlaybackTimer
     global alternatePlaybackTimer
     global finalizePlaybackTimer
+    global confirmationPlaybackTimer
+    global confirmationZoomTimer
     global pendingViewerColor
     global pendingSourcePlane
     global lastCorSuccess
@@ -978,8 +1129,11 @@ def alternate_playback(
             "[lastFrameA, lastFrameB]."
         )
 
-    # Initialize Slicer views for recording
-    initializeViews()
+    # Initialize Slicer views for recording and restore
+    # the trajectory-specific saved 3D camera framing.
+    initializeViews(
+        camera_view
+    )
 
     # Enhance NeedleTip visibility in both 2D and 3D views
     configureNeedleTipDisplay(
@@ -1035,6 +1189,294 @@ def alternate_playback(
             f"3D slice visibility: "
             f"{viewer_color_A} + {viewer_color_B} ON"
         )
+
+    def showConfirmationVolume():
+        """
+        Replace the tracking views with the confirmation VIBE volume.
+
+        Green remains Coronal and Yellow remains Sagittal in the
+        visible 2D layout. Red is used only as an Axial VIBE plane
+        in the 3D view.
+
+        All three VIBE planes are positioned directly through the
+        final NeedleTip RAS coordinates.
+        """
+
+        if not confirmation_volume_name:
+            print(
+                "No confirmationVolumeName specified. "
+                "Skipping confirmation VIBE."
+            )
+            return
+
+        try:
+            confirmationVolume = slicer.util.getNode(
+                confirmation_volume_name
+            )
+        except Exception:
+            print(
+                f"Warning: Confirmation volume "
+                f"'{confirmation_volume_name}' not found."
+            )
+            return
+
+        fiducialNode = slicer.util.getNode(
+            fiducial_name
+        )
+
+        if (
+            fiducialNode is None
+            or fiducialNode.GetNumberOfControlPoints() == 0
+        ):
+            print(
+                "Warning: NeedleTip not available. "
+                "Cannot position confirmation VIBE."
+            )
+            return
+
+        # Final tracked NeedleTip in world RAS coordinates.
+        ras = [0.0, 0.0, 0.0]
+
+        fiducialNode.GetNthControlPointPositionWorld(
+            0,
+            ras
+        )
+
+        print(
+            "Final NeedleTip RAS:",
+            ras
+        )
+
+        # ----------------------------------------------------------
+        # Load VIBE into Green, Yellow, and Red.
+        # Red is not part of the visible 2D layout, but its slice
+        # plane will be shown in the 3D view.
+        # ----------------------------------------------------------
+
+        for viewerColor in [
+            "Green",
+            "Yellow",
+            "Red"
+        ]:
+            sliceWidget = (
+                slicer.app.layoutManager()
+                .sliceWidget(viewerColor)
+            )
+
+            if sliceWidget is None:
+                continue
+
+            sliceLogic = sliceWidget.sliceLogic()
+
+            compositeNode = (
+                sliceLogic
+                .GetSliceCompositeNode()
+            )
+
+            compositeNode.SetBackgroundVolumeID(
+                confirmationVolume.GetID()
+            )
+
+        # ----------------------------------------------------------
+        # Set the desired orthogonal orientations.
+        # ----------------------------------------------------------
+
+        greenNode = slicer.util.getNode(
+            "vtkMRMLSliceNodeGreen"
+        )
+
+        yellowNode = slicer.util.getNode(
+            "vtkMRMLSliceNodeYellow"
+        )
+
+        redNode = slicer.util.getNode(
+            "vtkMRMLSliceNodeRed"
+        )
+
+        greenNode.SetOrientation(
+            "Coronal"
+        )
+
+        yellowNode.SetOrientation(
+            "Sagittal"
+        )
+
+        redNode.SetOrientation(
+            "Axial"
+        )
+
+        # ----------------------------------------------------------
+        # Reset field of view for the two visible VIBE viewers.
+        #
+        # Do this BEFORE applying the NeedleTip offsets, because
+        # FitSliceToAll() may recenter the slice.
+        # ----------------------------------------------------------
+
+        for viewerColor in [
+            "Green",
+            "Yellow"
+        ]:
+            sliceWidget = (
+                slicer.app.layoutManager()
+                .sliceWidget(viewerColor)
+            )
+
+            if sliceWidget is None:
+                continue
+
+            sliceWidget.sliceLogic().FitSliceToAll()
+
+        # ----------------------------------------------------------
+        # Position all three VIBE planes directly through the final
+        # NeedleTip.
+        #
+        # This is deliberately done AFTER FitSliceToAll(), so the
+        # final slice positions remain exactly at the NeedleTip RAS
+        # coordinates.
+        # ----------------------------------------------------------
+
+        for viewerColor in [
+            "Green",
+            "Yellow",
+            "Red"
+        ]:
+            sliceWidget = (
+                slicer.app.layoutManager()
+                .sliceWidget(viewerColor)
+            )
+
+            if sliceWidget is None:
+                continue
+
+            sliceLogic = sliceWidget.sliceLogic()
+            sliceNode = sliceLogic.GetSliceNode()
+
+            sliceToRAS = (
+                sliceNode.GetSliceToRAS()
+            )
+
+            normal = [
+                sliceToRAS.GetElement(0, 2),
+                sliceToRAS.GetElement(1, 2),
+                sliceToRAS.GetElement(2, 2)
+            ]
+
+            offset = (
+                ras[0] * normal[0]
+                + ras[1] * normal[1]
+                + ras[2] * normal[2]
+            )
+
+            sliceLogic.SetSliceOffset(
+                offset
+            )
+
+            print(
+                f"{viewerColor} VIBE offset = "
+                f"{offset:.3f}"
+            )
+
+        # ----------------------------------------------------------
+        # Show all three orthogonal VIBE planes in the 3D view.
+        # ----------------------------------------------------------
+
+        greenNode.SetSliceVisible(True)
+        yellowNode.SetSliceVisible(True)
+        redNode.SetSliceVisible(True)
+
+        # Final video annotation.
+        set3DViewText(
+            "Confirmation VIBE"
+        )
+
+        slicer.util.forceRenderAllViews()
+
+        print(
+            f"Confirmation VIBE displayed: "
+            f"{confirmation_volume_name}"
+        )
+
+        print(
+            f"Holding confirmation VIBE for "
+            f"{int(2 * delay_ms)} ms before progressive 100% zoom..."
+        )
+
+        confirmationZoomTimer.start()
+
+    def zoomConfirmationView():
+        """
+        Progressively zoom the active 3D camera in by 100% after
+        the VIBE confirmation has been displayed for one complete cycle.
+
+        The animation lasts one delay_ms interval and is split into
+        multiple small zoom steps for a smoother final video.
+        """
+
+        viewNode = (
+            slicer.app.layoutManager()
+            .threeDWidget(0)
+            .mrmlViewNode()
+        )
+
+        cameraNode = (
+            slicer.modules.cameras.logic()
+            .GetViewActiveCameraNode(viewNode)
+        )
+
+        if cameraNode is None:
+            print(
+                "Warning: Could not find active 3D camera node "
+                "for confirmation zoom."
+            )
+            return
+
+        camera = cameraNode.GetCamera()
+
+        totalZoom = 2.00
+        steps = 20
+        stepZoom = totalZoom ** (1.0 / steps)
+
+        intervalMs = max(
+            1,
+            int(delay_ms / steps)
+        )
+
+        currentStep = 0
+
+        progressiveZoomTimer = qt.QTimer()
+        progressiveZoomTimer.setInterval(intervalMs)
+
+        def zoomStep():
+            nonlocal currentStep
+
+            camera.Zoom(stepZoom)
+
+            cameraNode.Modified()
+            slicer.util.forceRenderAllViews()
+
+            currentStep += 1
+
+            if currentStep >= steps:
+                progressiveZoomTimer.stop()
+
+                print(
+                    "Progressive 25% confirmation zoom complete."
+                )
+
+        progressiveZoomTimer.timeout.connect(zoomStep)
+
+        # Keep a reference so the timer is not garbage-collected.
+        nonlocalProgressiveTimers.append(
+            progressiveZoomTimer
+        )
+
+        print(
+            f"Starting progressive confirmation zoom: "
+            f"25% over {int(delay_ms)} ms "
+            f"({steps} steps)."
+        )
+
+        progressiveZoomTimer.start()
 
     def getCurrentIndex(browser):
         return browser.GetSelectedItemNumber()
@@ -1111,6 +1553,18 @@ def alternate_playback(
     if finalizePlaybackTimer and finalizePlaybackTimer.isActive():
         finalizePlaybackTimer.stop()
 
+    if (
+        confirmationPlaybackTimer
+        and confirmationPlaybackTimer.isActive()
+    ):
+        confirmationPlaybackTimer.stop()
+
+    if (
+        confirmationZoomTimer
+        and confirmationZoomTimer.isActive()
+    ):
+        confirmationZoomTimer.stop()
+
     # Internal playback timers
     startPlaybackTimer = None
 
@@ -1120,6 +1574,24 @@ def alternate_playback(
     finalizePlaybackTimer = qt.QTimer()
     finalizePlaybackTimer.setSingleShot(True)
     finalizePlaybackTimer.setInterval(int(delay_ms))
+
+    confirmationPlaybackTimer = qt.QTimer()
+    confirmationPlaybackTimer.setSingleShot(True)
+
+    # Hold the final bi-plane tracking view for one complete
+    # COR-SAG cycle (two scan intervals) before VIBE confirmation.
+    confirmationPlaybackTimer.setInterval(
+        int(2 * delay_ms)
+    )
+
+    confirmationZoomTimer = qt.QTimer()
+    confirmationZoomTimer.setSingleShot(True)
+
+    # After the VIBE confirmation appears, hold it for one
+    # complete cycle before zooming the 3D view in by 25%.
+    confirmationZoomTimer.setInterval(
+        int(2 * delay_ms)
+    )
 
     def printCurrentFrame(browser_name, browser):
         print(
@@ -1160,11 +1632,23 @@ def alternate_playback(
         )
 
         browserA.SetSelectedItemNumber(firstFrameA)
-        setViewerToMiddleSlice(viewer_color_A)
+
+        # Keep Browser A's initialization view on the middle
+        # acquired slice of the newly loaded volume.
+        setViewerToMiddleSlice(
+            viewer_color_A
+        )
+
         printCurrentFrame(browser_name_A, browserA)
 
         browserB.SetSelectedItemNumber(firstFrameB)
-        setViewerToMiddleSlice(viewer_color_B)
+
+        # Keep Browser B's initialization view on the middle
+        # acquired slice of the newly loaded volume.
+        setViewerToMiddleSlice(
+            viewer_color_B
+        )
+
         printCurrentFrame(browser_name_B, browserB)
 
         # Show both initialized slice planes in 3D.
@@ -1172,10 +1656,15 @@ def alternate_playback(
         # updated browser's slice plane will be shown.
         showBothSlicePlanes()
 
+
         # Browser A is the first active browser during playback
         currentBrowser = "A"
 
     firstPlaybackPass = True
+
+    # Keep references to short-lived progressive zoom timers so
+    # they are not garbage-collected before the animation completes.
+    nonlocalProgressiveTimers = []
 
     def startPlayback():
         nonlocal currentBrowser
@@ -1193,11 +1682,31 @@ def alternate_playback(
     def finalizePlayback():
         """
         After one normal playback delay following the final frame,
-        show both slice planes again to finish the recording.
+        show both final tracking planes together.
+
+        Hold this final tracking state for one additional delay_ms
+        interval before switching to the VIBE confirmation.
         """
+
         set3DViewText("")
         showBothSlicePlanes()
-        print("Playback finished.")
+
+        # Red is reserved for the final axial VIBE plane and
+        # remains hidden throughout tracking playback.
+        redNode = slicer.util.getNode(
+            "vtkMRMLSliceNodeRed"
+        )
+        redNode.SetSliceVisible(False)
+
+        slicer.util.forceRenderAllViews()
+
+        print(
+            f"Final tracking planes displayed. "
+            f"Holding for {int(2 * delay_ms)} ms "
+            f"(one cycle) before confirmation VIBE..."
+        )
+
+        confirmationPlaybackTimer.start()
 
     def stepPlayback():
         nonlocal currentBrowser
@@ -1346,6 +1855,12 @@ def alternate_playback(
 
     alternatePlaybackTimer.timeout.connect(stepPlayback)
     finalizePlaybackTimer.timeout.connect(finalizePlayback)
+    confirmationPlaybackTimer.timeout.connect(
+        showConfirmationVolume
+    )
+    confirmationZoomTimer.timeout.connect(
+        zoomConfirmationView
+    )
 
     # Observe tracking only after the initialization frames are loaded.
     # The first two confidence updates are treated as initialization.
@@ -1375,6 +1890,8 @@ def stop_alternate_playback():
     global startPlaybackTimer
     global alternatePlaybackTimer
     global finalizePlaybackTimer
+    global confirmationPlaybackTimer
+    global confirmationZoomTimer
     global confidenceNode
     global confidenceObserverTag
     global pendingViewerColor
@@ -1398,6 +1915,20 @@ def stop_alternate_playback():
 
     if finalizePlaybackTimer and finalizePlaybackTimer.isActive():
         finalizePlaybackTimer.stop()
+        stopped = True
+
+    if (
+        confirmationPlaybackTimer
+        and confirmationPlaybackTimer.isActive()
+    ):
+        confirmationPlaybackTimer.stop()
+        stopped = True
+
+    if (
+        confirmationZoomTimer
+        and confirmationZoomTimer.isActive()
+    ):
+        confirmationZoomTimer.stop()
         stopped = True
 
     if (
@@ -1460,6 +1991,16 @@ except NameError:
     confidenceNodeName = None
 
 try:
+    confirmationVolumeName
+except NameError:
+    confirmationVolumeName = ""
+
+try:
+    cameraView
+except NameError:
+    cameraView = None
+
+try:
     delayms
 except NameError:
     delayms = None
@@ -1503,6 +2044,8 @@ else:
         viewer_color_B=viewerColorB,
         fiducial_name=fiducialName,
         confidence_node_name=confidenceNodeName,
+        confirmation_volume_name=confirmationVolumeName,
+        camera_view=cameraView,
         delay_ms=delayms,
         first_frame=firstFrame,
         last_frame=lastFrame,
